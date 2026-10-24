@@ -1,21 +1,20 @@
 import { Link } from "react-router-dom";
 
-export default function Navbar() {
+function Navbar() {
   return (
-    <nav
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        padding: "16px 32px",
-        borderBottom: "1px solid #ddd",
-      }}
-    >
-      <Link to="/" style={{ fontWeight: "bold" }}>
-        MyApp
+    <nav className="flex items-center justify-between bg-white px-8 py-4 shadow">
+      <Link to="/" className="text-xl font-bold text-indigo-600">
+        ProjectHub
       </Link>
-      <Link to="/signin">
-        <button>Sign In</button>
+
+      <Link
+        to="/signin"
+        className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+      >
+        Sign In
       </Link>
     </nav>
   );
 }
+
+export default Navbar;
