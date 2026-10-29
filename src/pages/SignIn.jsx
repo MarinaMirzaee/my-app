@@ -4,7 +4,7 @@ function SignIn() {
   const navigate = useNavigate();
 
   function handleSubmit(e) {
-    e.preventDefault(); // stop the page from reloading
+    e.preventDefault(); 
     // TODO: check email and password when we add authentication
     navigate("/dashboard");
   }
