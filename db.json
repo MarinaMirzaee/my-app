@@ -1,4 +1,32 @@
 {
-  "projects": [],
-  "tasks": []
+  "projects": [
+    {
+      "title": "website",
+      "owner": "user-54594df7-7041-4338-8ddf-858993fea47c",
+      "members": [
+        "Marina",
+        "Rana",
+        "Ahmad"
+      ],
+      "createdAt": "2026-10-29T08:17:56.538Z",
+      "updatedAt": "2026-10-29T08:17:56.538Z",
+      "completedAt": null,
+      "id": 1
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Create logo",
+      "priority": "low",
+      "status": "in-progress",
+      "assignee": "Marina",
+      "projectId": 1,
+      "parentId": 1,
+      "createdBy": "user-54594df7-7041-4338-8ddf-858993fea47c",
+      "createdAt": "2026-10-29T08:23:07.564Z",
+      "updatedAt": "2026-10-29T08:45:31.349Z",
+      "completedAt": null,
+      "id": 2
+    }
+  ]
 }
