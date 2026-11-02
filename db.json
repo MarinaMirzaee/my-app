@@ -1,30 +1,37 @@
 {
   "projects": [
     {
-      "title": "website",
+      "title": "webapp",
       "owner": "user-54594df7-7041-4338-8ddf-858993fea47c",
       "members": [
-        "Marina",
-        "Rana",
-        "Ahmad"
+        "sara"
       ],
-      "createdAt": "2026-10-29T08:17:56.538Z",
-      "updatedAt": "2026-10-29T08:17:56.538Z",
+      "createdAt": "2026-11-02T06:11:37.851Z",
+      "updatedAt": "2026-11-02T06:20:14.471Z",
       "completedAt": null,
       "id": 1
+    },
+    {
+      "title": "homepage",
+      "owner": "user-54594df7-7041-4338-8ddf-858993fea47c",
+      "members": [],
+      "createdAt": "2026-11-02T06:13:54.428Z",
+      "updatedAt": "2026-11-02T06:13:54.428Z",
+      "completedAt": null,
+      "id": 2
     }
   ],
   "tasks": [
     {
-      "title": "Create logo",
-      "priority": "low",
-      "status": "in-progress",
-      "assignee": "Marina",
-      "projectId": 1,
-      "parentId": 1,
+      "title": "Test Task 2",
+      "priority": "medium",
+      "status": "todo",
+      "assignee": "Ahmad",
+      "projectId": 2,
+      "parentId": null,
       "createdBy": "user-54594df7-7041-4338-8ddf-858993fea47c",
-      "createdAt": "2026-10-29T08:23:07.564Z",
-      "updatedAt": "2026-10-29T08:45:31.349Z",
+      "createdAt": "2026-11-02T07:06:31.897Z",
+      "updatedAt": "2026-11-02T07:06:31.897Z",
       "completedAt": null,
       "id": 2
     }

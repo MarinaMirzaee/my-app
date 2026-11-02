@@ -1,53 +1,35 @@
-import { useState } from "react";
-
-function ProjectModal({ project, onSave, onClose }) {
-  const [title, setTitle] = useState(project ? project.title : "");
-  const [membersText, setMembersText] = useState(
-    project ? project.members.join(", ") : "",
-  );
-  const [completed, setCompleted] = useState(
-    project ? project.completedAt !== null : false,
-  );
-
-  function handleSubmit(e) {
-    e.preventDefault();
-    if (!title.trim()) return;
-
-    const members = membersText
-      .split(",")
-      .map((m) => m.trim())
-      .filter(Boolean);
-
-    onSave({ title: title.trim(), members, completed });
-  }
-
+function ProjectModal({ projectData, errors, onSubmit, onClose }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={onClose}
     >
       <form
+        noValidate
         onClick={(e) => e.stopPropagation()}
-        onSubmit={handleSubmit}
+        onSubmit={onSubmit}
         className="w-full max-w-md rounded bg-white p-6 shadow"
       >
         <h2 className="mb-4 text-xl font-bold">
-          {project ? "Edit Project" : "New Project"}
+          {projectData ? "Edit Project" : "New Project"}
         </h2>
 
         <label className="mb-1 block text-sm text-gray-600">Title</label>
         <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="mb-4 w-full rounded border border-gray-300 px-3 py-2"
+          name="title"
+          defaultValue={projectData?.title}
+          className={`w-full rounded border px-3 py-2 ${
+            errors.title ? "border-red-500" : "border-gray-300"
+          }`}
         />
+        <p className="mb-4 mt-1 min-h-5 text-sm text-red-600">{errors.title}</p>
 
         <label className="mb-1 block text-sm text-gray-600">
           Members (comma separated)
         </label>
         <input
-          value={membersText}
-          onChange={(e) => setMembersText(e.target.value)}
+          name="members"
+          defaultValue={projectData?.members.join(", ")}
           placeholder="Sara, Marina"
           className="mb-4 w-full rounded border border-gray-300 px-3 py-2"
         />
@@ -55,11 +37,15 @@ function ProjectModal({ project, onSave, onClose }) {
         <label className="mb-6 flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            checked={completed}
-            onChange={(e) => setCompleted(e.target.checked)}
+            name="completed"
+            defaultChecked={Boolean(projectData?.completedAt)}
           />
           Mark as completed
         </label>
+
+        {errors.form && (
+          <p className="mb-4 text-sm text-red-600">{errors.form}</p>
+        )}
 
         <div className="flex justify-end gap-2">
           <button

@@ -1,41 +1,30 @@
 import { useState } from "react";
 
-function TaskModal({ task, projects, tasks, onSave, onClose }) {
-  const [title, setTitle] = useState(task ? task.title : "");
-  const [priority, setPriority] = useState(task ? task.priority : "medium");
-  const [status, setStatus] = useState(task ? task.status : "todo");
-  const [assignee, setAssignee] = useState(task ? task.assignee : "");
-  const [projectId, setProjectId] = useState(
-    task ? task.projectId : projects[0].id,
-  );
-  const [parentId, setParentId] = useState(
-    task && task.parentId !== null ? task.parentId : "",
+// No submit function here: the form uses onSubmit from the page directly.
+function TaskModal({
+  taskData,
+  projects,
+  allTasks,
+  errors,
+  onSubmit,
+  onClose,
+}) {
+  // the only state in this modal: the parent list depends on the chosen project
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    taskData ? taskData.projectId : projects[0].id,
   );
 
   // a parent must be a main task of the same project, and not the task itself
-  const parentOptions = tasks.filter(
+  const parentOptions = allTasks.filter(
     (t) =>
-      t.projectId === Number(projectId) &&
+      t.projectId === Number(selectedProjectId) &&
       t.parentId === null &&
-      (!task || t.id !== task.id),
+      (!taskData || t.id !== taskData.id),
   );
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    if (!title.trim()) return;
-
-    onSave({
-      title: title.trim(),
-      priority,
-      status,
-      assignee: assignee.trim(),
-      projectId: Number(projectId),
-      parentId: parentId === "" ? null : Number(parentId),
-    });
-  }
-
-  const inputClass = "mb-4 w-full rounded border border-gray-300 px-3 py-2";
+  const fieldClass = "w-full rounded border border-gray-300 px-3 py-2";
   const labelClass = "mb-1 block text-sm text-gray-600";
+  const errorClass = "mb-3 mt-1 min-h-5 text-sm text-red-600";
 
   return (
     <div
@@ -43,28 +32,30 @@ function TaskModal({ task, projects, tasks, onSave, onClose }) {
       onClick={onClose}
     >
       <form
+        noValidate
         onClick={(e) => e.stopPropagation()}
-        onSubmit={handleSubmit}
+        onSubmit={onSubmit}
         className="w-full max-w-md rounded bg-white p-6 shadow"
       >
         <h2 className="mb-4 text-xl font-bold">
-          {task ? "Edit Task" : "New Task"}
+          {taskData ? "Edit Task" : "New Task"}
         </h2>
 
         <label className={labelClass}>Title</label>
         <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className={inputClass}
+          name="title"
+          defaultValue={taskData?.title}
+          className={`${fieldClass} ${errors.title ? "border-red-500" : ""}`}
         />
+        <p className={errorClass}>{errors.title}</p>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="mb-4 grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Priority</label>
             <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              className={inputClass}
+              name="priority"
+              defaultValue={taskData?.priority ?? "medium"}
+              className={fieldClass}
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -75,9 +66,9 @@ function TaskModal({ task, projects, tasks, onSave, onClose }) {
           <div>
             <label className={labelClass}>Status</label>
             <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className={inputClass}
+              name="status"
+              defaultValue={taskData?.status ?? "todo"}
+              className={fieldClass}
             >
               <option value="todo">To Do</option>
               <option value="in-progress">In Progress</option>
@@ -88,20 +79,19 @@ function TaskModal({ task, projects, tasks, onSave, onClose }) {
 
         <label className={labelClass}>Assignee</label>
         <input
-          value={assignee}
-          onChange={(e) => setAssignee(e.target.value)}
+          name="assignee"
+          defaultValue={taskData?.assignee}
           placeholder="Sara"
-          className={inputClass}
+          className={`${fieldClass} ${errors.assignee ? "border-red-500" : ""}`}
         />
+        <p className={errorClass}>{errors.assignee}</p>
 
         <label className={labelClass}>Project</label>
         <select
-          value={projectId}
-          onChange={(e) => {
-            setProjectId(e.target.value);
-            setParentId(""); // the old parent belongs to another project
-          }}
-          className={inputClass}
+          name="projectId"
+          value={selectedProjectId}
+          onChange={(e) => setSelectedProjectId(e.target.value)}
+          className={fieldClass}
         >
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
@@ -109,11 +99,13 @@ function TaskModal({ task, projects, tasks, onSave, onClose }) {
             </option>
           ))}
         </select>
+        <p className={errorClass}>{errors.projectId}</p>
 
         <label className={labelClass}>Parent task (optional)</label>
         <select
-          value={parentId}
-          onChange={(e) => setParentId(e.target.value)}
+          key={selectedProjectId} // resets the choice when the project changes
+          name="parentId"
+          defaultValue={taskData?.parentId ?? ""}
           className="mb-6 w-full rounded border border-gray-300 px-3 py-2"
         >
           <option value="">None (main task)</option>
@@ -123,6 +115,10 @@ function TaskModal({ task, projects, tasks, onSave, onClose }) {
             </option>
           ))}
         </select>
+
+        {errors.form && (
+          <p className="mb-4 text-sm text-red-600">{errors.form}</p>
+        )}
 
         <div className="flex justify-end gap-2">
           <button

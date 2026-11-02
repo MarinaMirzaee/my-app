@@ -6,6 +6,7 @@ import {
   deleteProject,
 } from "../api/projects";
 import { getUserId } from "../utils/user";
+import { validateProject } from "../utils/validation";
 import ProjectModal from "../components/ProjectModal";
 
 function formatDate(date) {
@@ -15,58 +16,93 @@ function formatDate(date) {
 function Projects() {
   const [projects, setProjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState(null);
+  const [projectData, setProjectData] = useState(null); // null = create mode
+  const [errors, setErrors] = useState({});
+  const [loadError, setLoadError] = useState("");
 
+  // query: runs once when the page opens
   useEffect(() => {
-    loadProjects();
+    getProjects()
+      .then(setProjects)
+      .catch(() =>
+        setLoadError("Could not load projects. Is the server running?"),
+      );
   }, []);
 
-  async function loadProjects() {
-    const data = await getProjects();
-    setProjects(data);
-  }
-
   function openCreate() {
-    setEditingProject(null);
+    setProjectData(null);
+    setErrors({});
     setIsModalOpen(true);
   }
 
   function openEdit(project) {
-    setEditingProject(project);
+    setProjectData(project);
+    setErrors({});
     setIsModalOpen(true);
   }
 
-  async function handleSave(formData) {
+  function closeModal() {
+    setIsModalOpen(false);
+  }
+
+  // the only submit function: the form calls it directly
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    const form = new FormData(e.currentTarget);
+    const values = {
+      title: form.get("title").trim(),
+      members: form
+        .get("members")
+        .split(",")
+        .map((m) => m.trim())
+        .filter(Boolean),
+      completed: form.get("completed") === "on",
+    };
+
+    const validationErrors = validateProject(values);
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) return;
+
     const now = new Date().toISOString();
 
-    if (editingProject) {
-      await updateProject(editingProject.id, {
-        title: formData.title,
-        members: formData.members,
-        updatedAt: now,
-        completedAt: formData.completed
-          ? editingProject.completedAt || now
-          : null,
-      });
-    } else {
-      await createProject({
-        title: formData.title,
-        owner: getUserId(),
-        members: formData.members,
-        createdAt: now,
-        updatedAt: now,
-        completedAt: formData.completed ? now : null,
-      });
+    try {
+      if (projectData) {
+        const updated = await updateProject(projectData.id, {
+          title: values.title,
+          members: values.members,
+          updatedAt: now,
+          completedAt: values.completed ? projectData.completedAt || now : null,
+        });
+        setProjects((prev) =>
+          prev.map((p) => (p.id === updated.id ? updated : p)),
+        );
+      } else {
+        const created = await createProject({
+          title: values.title,
+          owner: getUserId(),
+          members: values.members,
+          createdAt: now,
+          updatedAt: now,
+          completedAt: values.completed ? now : null,
+        });
+        setProjects((prev) => [...prev, created]);
+      }
+      closeModal();
+    } catch {
+      setErrors({ form: "Could not save the project. Is the server running?" });
     }
-
-    setIsModalOpen(false);
-    loadProjects();
   }
 
   async function handleDelete(id) {
     if (!window.confirm("Delete this project?")) return;
-    await deleteProject(id);
-    loadProjects();
+
+    try {
+      await deleteProject(id);
+      setProjects((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      alert("Could not delete the project.");
+    }
   }
 
   return (
@@ -80,6 +116,8 @@ function Projects() {
           New Project
         </button>
       </div>
+
+      {loadError && <p className="mb-4 text-sm text-red-600">{loadError}</p>}
 
       <div className="overflow-x-auto rounded bg-white shadow">
         <table className="w-full text-left text-sm">
@@ -132,9 +170,10 @@ function Projects() {
 
       {isModalOpen && (
         <ProjectModal
-          project={editingProject}
-          onSave={handleSave}
-          onClose={() => setIsModalOpen(false)}
+          projectData={projectData}
+          errors={errors}
+          onSubmit={handleSubmit}
+          onClose={closeModal}
         />
       )}
     </div>

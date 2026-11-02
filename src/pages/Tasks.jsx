@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getTasks, createTask, updateTask, deleteTask } from "../api/tasks";
 import { getProjects } from "../api/projects";
 import { getUserId } from "../utils/user";
+import { validateTask } from "../utils/validation";
 import TaskModal from "../components/TaskModal";
 
 function formatDate(date) {
@@ -12,21 +13,21 @@ function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
+  const [taskData, setTaskData] = useState(null); // null = create mode
+  const [errors, setErrors] = useState({});
+  const [loadError, setLoadError] = useState("");
 
+  // queries: tasks and projects are fetched together, once
   useEffect(() => {
-    loadData();
+    Promise.all([getTasks(), getProjects()])
+      .then(([tasksData, projectsData]) => {
+        setTasks(tasksData);
+        setProjects(projectsData);
+      })
+      .catch(() =>
+        setLoadError("Could not load tasks. Is the server running?"),
+      );
   }, []);
-
-  // tasks need the projects list too (for the project name and the dropdown)
-  async function loadData() {
-    const [tasksData, projectsData] = await Promise.all([
-      getTasks(),
-      getProjects(),
-    ]);
-    setTasks(tasksData);
-    setProjects(projectsData);
-  }
 
   function projectName(id) {
     const project = projects.find((p) => p.id === id);
@@ -40,43 +41,87 @@ function Tasks() {
   }
 
   function openCreate() {
-    setEditingTask(null);
+    setTaskData(null);
+    setErrors({});
     setIsModalOpen(true);
   }
 
   function openEdit(task) {
-    setEditingTask(task);
+    setTaskData(task);
+    setErrors({});
     setIsModalOpen(true);
   }
 
-  async function handleSave(formData) {
-    const now = new Date().toISOString();
-    const isDone = formData.status === "done";
-
-    if (editingTask) {
-      await updateTask(editingTask.id, {
-        ...formData,
-        updatedAt: now,
-        completedAt: isDone ? editingTask.completedAt || now : null,
-      });
-    } else {
-      await createTask({
-        ...formData,
-        createdBy: getUserId(),
-        createdAt: now,
-        updatedAt: now,
-        completedAt: isDone ? now : null,
-      });
-    }
-
+  function closeModal() {
     setIsModalOpen(false);
-    loadData();
+  }
+
+  // the only submit function: the form calls it directly
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    const form = new FormData(e.currentTarget);
+    const parentId = form.get("parentId");
+    const values = {
+      title: form.get("title").trim(),
+      priority: form.get("priority"),
+      status: form.get("status"),
+      assignee: form.get("assignee").trim(),
+      projectId: Number(form.get("projectId")),
+      parentId: parentId === "" ? null : Number(parentId),
+    };
+
+    const validationErrors = validateTask(values);
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) return;
+
+    const now = new Date().toISOString();
+    const isDone = values.status === "done";
+
+    try {
+      if (taskData) {
+        const updated = await updateTask(taskData.id, {
+          ...values,
+          updatedAt: now,
+          completedAt: isDone ? taskData.completedAt || now : null,
+        });
+        setTasks((prev) =>
+          prev.map((t) => (t.id === updated.id ? updated : t)),
+        );
+      } else {
+        const created = await createTask({
+          ...values,
+          createdBy: getUserId(),
+          createdAt: now,
+          updatedAt: now,
+          completedAt: isDone ? now : null,
+        });
+        setTasks((prev) => [...prev, created]);
+      }
+      closeModal();
+    } catch {
+      setErrors({ form: "Could not save the task. Is the server running?" });
+    }
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("Delete this task?")) return;
-    await deleteTask(id);
-    loadData();
+    const subtasks = tasks.filter((t) => t.parentId === id);
+
+    const message = subtasks.length
+      ? `Delete this task and its ${subtasks.length} subtask(s)?`
+      : "Delete this task?";
+    if (!window.confirm(message)) return;
+
+    try {
+      // delete the subtasks first, then the task itself
+      await Promise.all(subtasks.map((t) => deleteTask(t.id)));
+      await deleteTask(id);
+
+      const removedIds = [id, ...subtasks.map((t) => t.id)];
+      setTasks((prev) => prev.filter((t) => !removedIds.includes(t.id)));
+    } catch {
+      alert("Could not delete the task.");
+    }
   }
 
   return (
@@ -92,7 +137,9 @@ function Tasks() {
         </button>
       </div>
 
-      {projects.length === 0 && (
+      {loadError && <p className="mb-4 text-sm text-red-600">{loadError}</p>}
+
+      {!loadError && projects.length === 0 && (
         <p className="mb-4 text-sm text-gray-500">
           Create a project first. Every task belongs to a project.
         </p>
@@ -157,11 +204,12 @@ function Tasks() {
 
       {isModalOpen && (
         <TaskModal
-          task={editingTask}
+          taskData={taskData}
           projects={projects}
-          tasks={tasks}
-          onSave={handleSave}
-          onClose={() => setIsModalOpen(false)}
+          allTasks={tasks}
+          errors={errors}
+          onSubmit={handleSubmit}
+          onClose={closeModal}
         />
       )}
     </div>

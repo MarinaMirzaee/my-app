@@ -12,7 +12,8 @@ export async function createProject(data) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
+  if (!res.ok) throw new Error("Failed to create project");
+  return res.json(); // the new project, including its id
 }
 
 export async function updateProject(id, data) {
@@ -21,9 +22,11 @@ export async function updateProject(id, data) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
+  if (!res.ok) throw new Error("Failed to update project");
+  return res.json(); // the full updated project
 }
 
 export async function deleteProject(id) {
-  await fetch(`${BASE_URL}/projects/${id}`, { method: "DELETE" });
+  const res = await fetch(`${BASE_URL}/projects/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete project");
 }
