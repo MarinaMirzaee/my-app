@@ -1,33 +1,30 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  getProjects,
-  createProject,
-  updateProject,
-  deleteProject,
-} from "../api/projects";
+  useProjects,
+  useCreateProject,
+  useUpdateProject,
+  useDeleteProject,
+} from "../hooks/useProjects";
+import { useTasks, useDeleteTask } from "../hooks/useTasks";
 import { getUserId } from "../utils/user";
-import { validateProject } from "../utils/validation";
+import { validate } from "../utils/validate";
+import { formatDate } from "../utils/date";
+import { projectSchema } from "../schemas/projectSchema";
 import ProjectModal from "../components/ProjectModal";
-
-function formatDate(date) {
-  return date ? new Date(date).toLocaleDateString() : "-";
-}
+import LoadingState from "../components/LoadingState";
 
 function Projects() {
-  const [projects, setProjects] = useState([]);
+  const projectsQuery = useProjects();
+  const tasksQuery = useTasks();
+  const createMutation = useCreateProject();
+  const updateMutation = useUpdateProject();
+  const deleteMutation = useDeleteProject();
+  const deleteTaskMutation = useDeleteTask();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projectData, setProjectData] = useState(null); // null = create mode
   const [errors, setErrors] = useState({});
-  const [loadError, setLoadError] = useState("");
-
-  // query: runs once when the page opens
-  useEffect(() => {
-    getProjects()
-      .then(setProjects)
-      .catch(() =>
-        setLoadError("Could not load projects. Is the server running?"),
-      );
-  }, []);
 
   function openCreate() {
     setProjectData(null);
@@ -49,44 +46,35 @@ function Projects() {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const form = new FormData(e.currentTarget);
-    const values = {
-      title: form.get("title").trim(),
-      members: form
-        .get("members")
-        .split(",")
-        .map((m) => m.trim())
-        .filter(Boolean),
-      completed: form.get("completed") === "on",
-    };
-
-    const validationErrors = validateProject(values);
+    const { data, errors: validationErrors } = validate(
+      projectSchema,
+      Object.fromEntries(new FormData(e.currentTarget)),
+    );
     setErrors(validationErrors);
-    if (Object.keys(validationErrors).length > 0) return;
+    if (!data) return;
 
     const now = new Date().toISOString();
 
     try {
       if (projectData) {
-        const updated = await updateProject(projectData.id, {
-          title: values.title,
-          members: values.members,
-          updatedAt: now,
-          completedAt: values.completed ? projectData.completedAt || now : null,
+        await updateMutation.mutateAsync({
+          id: projectData.id,
+          data: {
+            title: data.title,
+            members: data.members,
+            updatedAt: now,
+            completedAt: data.completed ? projectData.completedAt || now : null,
+          },
         });
-        setProjects((prev) =>
-          prev.map((p) => (p.id === updated.id ? updated : p)),
-        );
       } else {
-        const created = await createProject({
-          title: values.title,
+        await createMutation.mutateAsync({
+          title: data.title,
           owner: getUserId(),
-          members: values.members,
+          members: data.members,
           createdAt: now,
           updatedAt: now,
-          completedAt: values.completed ? now : null,
+          completedAt: data.completed ? now : null,
         });
-        setProjects((prev) => [...prev, created]);
       }
       closeModal();
     } catch {
@@ -95,15 +83,40 @@ function Projects() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("Delete this project?")) return;
+    if (!tasksQuery.isSuccess) {
+      alert("Tasks are not loaded yet. Try again in a moment.");
+      return;
+    }
+
+    const projectTasks = tasksQuery.data.filter((t) => t.projectId === id);
+    const message = projectTasks.length
+      ? `Delete this project and its ${projectTasks.length} task(s)?`
+      : "Delete this project?";
+    if (!window.confirm(message)) return;
 
     try {
-      await deleteProject(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
+      await Promise.all(
+        projectTasks.map((t) => deleteTaskMutation.mutateAsync(t.id)),
+      );
+      await deleteMutation.mutateAsync(id);
     } catch {
       alert("Could not delete the project.");
     }
   }
+
+  if (projectsQuery.isPending) {
+    return <LoadingState message="Loading projects..." />;
+  }
+
+  if (projectsQuery.isError) {
+    return (
+      <p className="text-sm text-red-600">
+        Could not load projects. Is the server running?
+      </p>
+    );
+  }
+
+  const projects = projectsQuery.data;
 
   return (
     <div>
@@ -116,8 +129,6 @@ function Projects() {
           New Project
         </button>
       </div>
-
-      {loadError && <p className="mb-4 text-sm text-red-600">{loadError}</p>}
 
       <div className="overflow-x-auto rounded bg-white shadow">
         <table className="w-full text-left text-sm">
@@ -142,7 +153,14 @@ function Projects() {
             )}
             {projects.map((project) => (
               <tr key={project.id} className="border-t">
-                <td className="p-3 font-medium">{project.title}</td>
+                <td className="p-3">
+                  <Link
+                    to={`/dashboard/projects/${project.id}`}
+                    className="font-medium text-indigo-600 hover:underline"
+                  >
+                    {project.title}
+                  </Link>
+                </td>
                 <td className="p-3">{project.owner}</td>
                 <td className="p-3">{project.members.join(", ") || "-"}</td>
                 <td className="p-3">{formatDate(project.createdAt)}</td>
@@ -172,6 +190,7 @@ function Projects() {
         <ProjectModal
           projectData={projectData}
           errors={errors}
+          isSaving={createMutation.isPending || updateMutation.isPending}
           onSubmit={handleSubmit}
           onClose={closeModal}
         />

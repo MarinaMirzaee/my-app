@@ -1,9 +1,38 @@
+import { useProjects } from "../hooks/useProjects";
+import { useTasks } from "../hooks/useTasks";
+import LoadingState from "../components/LoadingState";
+
 function Overview() {
+  const projectsQuery = useProjects();
+  const tasksQuery = useTasks();
+
+  if (projectsQuery.isPending || tasksQuery.isPending) {
+    return <LoadingState message="Loading overview..." />;
+  }
+
+  if (projectsQuery.isError || tasksQuery.isError) {
+    return (
+      <p className="text-sm text-red-600">
+        Could not load the overview. Is the server running?
+      </p>
+    );
+  }
+
+  const tasks = tasksQuery.data;
   const stats = [
-    { label: "Projects", value: 6 },
-    { label: "Open tasks", value: 24 },
-    { label: "Completed", value: 58 },
-    { label: "Team members", value: 9 },
+    { label: "Projects", value: projectsQuery.data.length },
+    {
+      label: "Open tasks",
+      value: tasks.filter((t) => t.status !== "done").length,
+    },
+    {
+      label: "Completed",
+      value: tasks.filter((t) => t.status === "done").length,
+    },
+    {
+      label: "Assignees",
+      value: new Set(tasks.map((t) => t.assignee).filter(Boolean)).size,
+    },
   ];
 
   return (

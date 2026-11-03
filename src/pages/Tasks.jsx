@@ -1,44 +1,33 @@
-import { useEffect, useState } from "react";
-import { getTasks, createTask, updateTask, deleteTask } from "../api/tasks";
-import { getProjects } from "../api/projects";
-import { getUserId } from "../utils/user";
-import { validateTask } from "../utils/validation";
-import TaskModal from "../components/TaskModal";
+import { useState } from "react";
 
-function formatDate(date) {
-  return date ? new Date(date).toLocaleDateString() : "-";
-}
+import {
+  useTasks,
+  useCreateTask,
+  useUpdateTask,
+  useDeleteTask,
+} from "../hooks/useTasks";
+
+import { useProjects } from "../hooks/useProjects";
+import { getUserId } from "../utils/user";
+import { validate } from "../utils/validate";
+import { formatDate, formatDueDate, isOverdue } from "../utils/date";
+
+import { taskSchema } from "../schemas/schemas/taskSchema";
+
+import TaskModal from "../components/TaskModal";
+import LoadingState from "../components/LoadingState";
 
 function Tasks() {
-  const [tasks, setTasks] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const tasksQuery = useTasks();
+  const projectsQuery = useProjects();
+
+  const createMutation = useCreateTask();
+  const updateMutation = useUpdateTask();
+  const deleteMutation = useDeleteTask();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [taskData, setTaskData] = useState(null); // null = create mode
+  const [taskData, setTaskData] = useState(null);
   const [errors, setErrors] = useState({});
-  const [loadError, setLoadError] = useState("");
-
-  // queries: tasks and projects are fetched together, once
-  useEffect(() => {
-    Promise.all([getTasks(), getProjects()])
-      .then(([tasksData, projectsData]) => {
-        setTasks(tasksData);
-        setProjects(projectsData);
-      })
-      .catch(() =>
-        setLoadError("Could not load tasks. Is the server running?"),
-      );
-  }, []);
-
-  function projectName(id) {
-    const project = projects.find((p) => p.id === id);
-    return project ? project.title : "-";
-  }
-
-  function parentName(id) {
-    if (id === null) return "-";
-    const parent = tasks.find((t) => t.id === id);
-    return parent ? parent.title : "-";
-  }
 
   function openCreate() {
     setTaskData(null);
@@ -56,78 +45,101 @@ function Tasks() {
     setIsModalOpen(false);
   }
 
-  // the only submit function: the form calls it directly
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const form = new FormData(e.currentTarget);
-    const parentId = form.get("parentId");
-    const values = {
-      title: form.get("title").trim(),
-      priority: form.get("priority"),
-      status: form.get("status"),
-      assignee: form.get("assignee").trim(),
-      projectId: Number(form.get("projectId")),
-      parentId: parentId === "" ? null : Number(parentId),
-    };
+    const formData = Object.fromEntries(new FormData(e.currentTarget));
 
-    const validationErrors = validateTask(values);
+    const { data, errors: validationErrors } = validate(taskSchema, formData);
+
     setErrors(validationErrors);
-    if (Object.keys(validationErrors).length > 0) return;
+
+    if (!data) return;
 
     const now = new Date().toISOString();
-    const isDone = values.status === "done";
+    const isDone = data.status === "done";
 
     try {
       if (taskData) {
-        const updated = await updateTask(taskData.id, {
-          ...values,
-          updatedAt: now,
-          completedAt: isDone ? taskData.completedAt || now : null,
+        await updateMutation.mutateAsync({
+          id: taskData.id,
+          data: {
+            ...data,
+            updatedAt: now,
+            completedAt: isDone ? taskData.completedAt || now : null,
+          },
         });
-        setTasks((prev) =>
-          prev.map((t) => (t.id === updated.id ? updated : t)),
-        );
       } else {
-        const created = await createTask({
-          ...values,
+        await createMutation.mutateAsync({
+          ...data,
           createdBy: getUserId(),
           createdAt: now,
           updatedAt: now,
           completedAt: isDone ? now : null,
         });
-        setTasks((prev) => [...prev, created]);
       }
+
       closeModal();
     } catch {
-      setErrors({ form: "Could not save the task. Is the server running?" });
+      setErrors({
+        form: "Could not save the task. Is the server running?",
+      });
     }
   }
 
   async function handleDelete(id) {
-    const subtasks = tasks.filter((t) => t.parentId === id);
+    const subtasks = tasksQuery.data.filter((task) => task.parentId === id);
 
     const message = subtasks.length
       ? `Delete this task and its ${subtasks.length} subtask(s)?`
       : "Delete this task?";
+
     if (!window.confirm(message)) return;
 
     try {
-      // delete the subtasks first, then the task itself
-      await Promise.all(subtasks.map((t) => deleteTask(t.id)));
-      await deleteTask(id);
+      await Promise.all(
+        subtasks.map((task) => deleteMutation.mutateAsync(task.id)),
+      );
 
-      const removedIds = [id, ...subtasks.map((t) => t.id)];
-      setTasks((prev) => prev.filter((t) => !removedIds.includes(t.id)));
+      await deleteMutation.mutateAsync(id);
     } catch {
       alert("Could not delete the task.");
     }
+  }
+
+  if (tasksQuery.isPending || projectsQuery.isPending) {
+    return <LoadingState message="Loading tasks..." />;
+  }
+
+  if (tasksQuery.isError || projectsQuery.isError) {
+    return (
+      <p className="text-sm text-red-600">
+        Could not load tasks. Is the server running?
+      </p>
+    );
+  }
+
+  const tasks = tasksQuery.data;
+  const projects = projectsQuery.data;
+
+  function projectName(id) {
+    const project = projects.find((p) => p.id === id);
+    return project ? project.title : "-";
+  }
+
+  function parentName(id) {
+    if (id === null) return "-";
+
+    const parent = tasks.find((task) => task.id === id);
+
+    return parent ? parent.title : "-";
   }
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tasks</h1>
+
         <button
           onClick={openCreate}
           disabled={projects.length === 0}
@@ -137,9 +149,7 @@ function Tasks() {
         </button>
       </div>
 
-      {loadError && <p className="mb-4 text-sm text-red-600">{loadError}</p>}
-
-      {!loadError && projects.length === 0 && (
+      {projects.length === 0 && (
         <p className="mb-4 text-sm text-gray-500">
           Create a project first. Every task belongs to a project.
         </p>
@@ -155,6 +165,7 @@ function Tasks() {
               <th className="p-3">Assignee</th>
               <th className="p-3">Project</th>
               <th className="p-3">Parent</th>
+              <th className="p-3">Due date</th>
               <th className="p-3">Created by</th>
               <th className="p-3">Created</th>
               <th className="p-3">Updated</th>
@@ -162,26 +173,41 @@ function Tasks() {
               <th className="p-3">Actions</th>
             </tr>
           </thead>
+
           <tbody>
             {tasks.length === 0 && (
               <tr>
-                <td colSpan="11" className="p-6 text-center text-gray-500">
+                <td colSpan="12" className="p-6 text-center text-gray-500">
                   No tasks yet. Click "New Task" to add one.
                 </td>
               </tr>
             )}
+
             {tasks.map((task) => (
               <tr key={task.id} className="border-t">
                 <td className="p-3 font-medium">{task.title}</td>
+
                 <td className="p-3">{task.priority}</td>
                 <td className="p-3">{task.status}</td>
                 <td className="p-3">{task.assignee || "-"}</td>
+
                 <td className="p-3">{projectName(task.projectId)}</td>
+
                 <td className="p-3">{parentName(task.parentId)}</td>
+
+                <td
+                  className={`p-3 ${
+                    isOverdue(task) ? "font-medium text-red-600" : ""
+                  }`}
+                >
+                  {formatDueDate(task.dueDate)}
+                </td>
+
                 <td className="p-3">{task.createdBy}</td>
                 <td className="p-3">{formatDate(task.createdAt)}</td>
                 <td className="p-3">{formatDate(task.updatedAt)}</td>
                 <td className="p-3">{formatDate(task.completedAt)}</td>
+
                 <td className="p-3">
                   <button
                     onClick={() => openEdit(task)}
@@ -189,6 +215,7 @@ function Tasks() {
                   >
                     Edit
                   </button>
+
                   <button
                     onClick={() => handleDelete(task.id)}
                     className="text-red-600 hover:underline"
@@ -208,6 +235,7 @@ function Tasks() {
           projects={projects}
           allTasks={tasks}
           errors={errors}
+          isSaving={createMutation.isPending || updateMutation.isPending}
           onSubmit={handleSubmit}
           onClose={closeModal}
         />
