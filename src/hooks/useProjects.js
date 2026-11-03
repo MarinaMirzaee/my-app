@@ -20,7 +20,7 @@ export function useProject(id) {
   });
 }
 
-// mutation: the server's answer (the new project) goes straight into the cache
+// mutation: the server's answer the new project goes straight into the cache
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({

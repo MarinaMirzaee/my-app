@@ -7,8 +7,13 @@ export async function getTasks() {
   return res.json();
 }
 
-// mutation: returns the new task with its id so the page can use it
+// mutation: returns the new task with its id
 export async function createTask(data) {
+  // last safety net: the form and the Zod schema already check this
+  if (!Number.isInteger(data.projectId)) {
+    throw new Error("A task must belong to a project");
+  }
+
   const res = await fetch(`${BASE_URL}/tasks`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

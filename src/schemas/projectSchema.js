@@ -17,7 +17,7 @@ export const projectSchema = z.object({
       .map((m) => m.trim())
       .filter(Boolean),
   ),
-  // an unchecked checkbox is missing from FormData, a checked one is "on"
+  // an unchecked checkbox is missing from FormData a checked one is "on"
   completed: z
     .string()
     .optional()
