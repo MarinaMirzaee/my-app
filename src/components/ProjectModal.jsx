@@ -1,4 +1,5 @@
-function ProjectModal({ projectData, errors, onSubmit, onClose }) {
+// No submit function here: the form uses onSubmit from the page directly.
+function ProjectModal({ projectData, errors, isSaving, onSubmit, onClose }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -57,9 +58,10 @@ function ProjectModal({ projectData, errors, onSubmit, onClose }) {
           </button>
           <button
             type="submit"
-            className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+            disabled={isSaving}
+            className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:opacity-60"
           >
-            Save
+            {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
       </form>

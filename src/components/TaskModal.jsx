@@ -6,6 +6,7 @@ function TaskModal({
   projects,
   allTasks,
   errors,
+  isSaving,
   onSubmit,
   onClose,
 }) {
@@ -35,7 +36,7 @@ function TaskModal({
         noValidate
         onClick={(e) => e.stopPropagation()}
         onSubmit={onSubmit}
-        className="w-full max-w-md rounded bg-white p-6 shadow"
+        className="max-h-screen w-full max-w-md overflow-y-auto rounded bg-white p-6 shadow"
       >
         <h2 className="mb-4 text-xl font-bold">
           {taskData ? "Edit Task" : "New Task"}
@@ -86,6 +87,15 @@ function TaskModal({
         />
         <p className={errorClass}>{errors.assignee}</p>
 
+        <label className={labelClass}>Due date (optional)</label>
+        <input
+          type="date"
+          name="dueDate"
+          defaultValue={taskData?.dueDate ?? ""}
+          className={`${fieldClass} ${errors.dueDate ? "border-red-500" : ""}`}
+        />
+        <p className={errorClass}>{errors.dueDate}</p>
+
         <label className={labelClass}>Project</label>
         <select
           name="projectId"
@@ -130,9 +140,10 @@ function TaskModal({
           </button>
           <button
             type="submit"
-            className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+            disabled={isSaving}
+            className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:opacity-60"
           >
-            Save
+            {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
       </form>
