@@ -7,7 +7,7 @@ export async function getTasks() {
   return res.json();
 }
 
-// mutation: returns the new task (with its id) so the page can use it
+// mutation: returns the new task with its id so the page can use it
 export async function createTask(data) {
   const res = await fetch(`${BASE_URL}/tasks`, {
     method: "POST",
