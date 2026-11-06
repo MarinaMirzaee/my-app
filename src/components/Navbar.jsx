@@ -7,12 +7,17 @@ function Navbar() {
         ProjectHub
       </Link>
 
-      <Link
-        to="/signin"
-        className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-      >
-        Sign In
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link to="/signup" className="text-sm text-indigo-600 hover:underline">
+          Create account
+        </Link>
+        <Link
+          to="/signin"
+          className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+        >
+          Sign In
+        </Link>
+      </div>
     </nav>
   );
 }

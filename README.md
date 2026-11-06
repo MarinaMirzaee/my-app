@@ -1,5 +1,17 @@
 # React + Vite
 
+## ProjectHub features
+
+- Project and task lists support searching across every record field. Results
+  update 300 ms after the user stops typing.
+- Project details are nested under `/dashboard/projects/:id` and share the
+  dashboard layout.
+- The sign-up, sign-in, and account profile flow is a local demonstration:
+  account records and sessions live in the current browser's `localStorage`.
+  Passwords are salted and hashed with PBKDF2, but client-side storage is not
+  production authentication. A production deployment needs a trusted server
+  for identity, authorization, and account storage.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

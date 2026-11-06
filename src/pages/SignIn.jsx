@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInSchema } from "../schemas/signInSchema";
 import { validate } from "../utils/validate";
+import { useAuth } from "../context/useAuth";
 
 function SignIn() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [errors, setErrors] = useState({});
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault(); 
     const { data, errors: validationErrors } = validate(
       signInSchema,
@@ -16,8 +18,12 @@ function SignIn() {
     setErrors(validationErrors);
     if (!data) return;
 
-    // TODO: check email and password when we add authentication
-    navigate("/dashboard");
+    try {
+      await login(data);
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      setErrors({ form: error.message });
+    }
   }
 
   return (
@@ -71,6 +77,15 @@ function SignIn() {
           Sign In
         </button>
 
+        {errors.form && (
+          <p role="alert" className="mt-3 text-center text-sm text-red-600">
+            {errors.form}
+          </p>
+        )}
+
+        <Link to="/signup" className="mt-4 block text-center text-sm text-indigo-600">
+          Create an account
+        </Link>
         <Link to="/" className="mt-4 block text-center text-sm text-gray-500">
           Back to home
         </Link>

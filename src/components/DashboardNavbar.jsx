@@ -1,19 +1,16 @@
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth";
 
 function DashboardNavbar() {
-  const navigate = useNavigate();
-
-  function handleSignOut() {
-    // no real auth yet, just go back to the landing page
-    navigate("/");
-  }
+  const { user, logout } = useAuth();
 
   return (
     <header className="flex items-center justify-between bg-white px-6 py-4 shadow">
-      <h1 className="font-semibold text-gray-800">Dashboard</h1>
+      <h1 className="font-semibold text-gray-800">
+        Dashboard{user ? ` · ${user.name}` : ""}
+      </h1>
 
       <button
-        onClick={handleSignOut}
+        onClick={logout}
         className="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100"
       >
         Sign Out

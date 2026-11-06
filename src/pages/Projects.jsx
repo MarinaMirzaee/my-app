@@ -13,6 +13,8 @@ import { formatDate } from "../utils/date";
 import { projectSchema } from "../schemas/projectSchema";
 import ProjectModal from "../components/ProjectModal";
 import LoadingState from "../components/LoadingState";
+import SearchFilter from "../components/SearchFilter";
+import { filterBySearch } from "../utils/filter";
 
 function Projects() {
   const projectsQuery = useProjects();
@@ -25,6 +27,7 @@ function Projects() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projectData, setProjectData] = useState(null); // null = create mode
   const [errors, setErrors] = useState({});
+  const [search, setSearch] = useState("");
 
   function openCreate() {
     setProjectData(null);
@@ -117,6 +120,7 @@ function Projects() {
   }
 
   const projects = projectsQuery.data;
+  const filteredProjects = filterBySearch(projects, search);
 
   return (
     <div>
@@ -129,6 +133,14 @@ function Projects() {
           New Project
         </button>
       </div>
+
+      <SearchFilter
+        value={search}
+        onSearchChange={setSearch}
+        placeholder="Search all project fields..."
+        resultCount={filteredProjects.length}
+        totalCount={projects.length}
+      />
 
       <div className="overflow-x-auto rounded bg-white shadow">
         <table className="w-full text-left text-sm">
@@ -144,18 +156,20 @@ function Projects() {
             </tr>
           </thead>
           <tbody>
-            {projects.length === 0 && (
+            {filteredProjects.length === 0 && (
               <tr>
                 <td colSpan="7" className="p-6 text-center text-gray-500">
-                  No projects yet. Click "New Project" to add one.
+                  {projects.length === 0
+                    ? 'No projects yet. Click "New Project" to add one.'
+                    : "No projects match your search."}
                 </td>
               </tr>
             )}
-            {projects.map((project) => (
+            {filteredProjects.map((project) => (
               <tr key={project.id} className="border-t">
                 <td className="p-3">
                   <Link
-                    to={`/project/${project.id}`}
+                    to={`/dashboard/projects/${project.id}`}
                     className="font-medium text-indigo-600 hover:underline"
                   >
                     {project.title}
