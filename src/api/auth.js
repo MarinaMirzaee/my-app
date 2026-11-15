@@ -1,14 +1,8 @@
-const ACCOUNTS_KEY = "projectHubAccounts";
-const SESSION_KEY = "projectHubSession";
-const HASH_ITERATIONS = 210_000;
+const BASE_URL = "http://localhost:3001";
 
-function readAccounts() {
-  const accounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "[]");
-  if (!Array.isArray(accounts)) {
-    throw new Error("Stored account data is invalid.");
-  }
-  return accounts;
-}
+const SESSION_KEY = "projectHubSession";
+
+const HASH_ITERATIONS = 210_000;
 
 function toHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
@@ -28,6 +22,7 @@ async function hashPassword(password, salt) {
     false,
     ["deriveBits"],
   );
+
   const bits = await crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
@@ -40,80 +35,136 @@ async function hashPassword(password, salt) {
     key,
     256,
   );
+
   return toHex(new Uint8Array(bits));
 }
 
-function publicAccount(account) {
-  return { id: account.id, name: account.name, email: account.email };
+function publicUser(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
 }
 
-function saveAccounts(accounts) {
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+async function getStoredUsers() {
+  const res = await fetch(`${BASE_URL}/users`);
+
+  if (!res.ok) {
+    throw new Error("Could not load users.");
+  }
+
+  return res.json();
 }
 
 export function getSavedSession() {
   const value = localStorage.getItem(SESSION_KEY);
+
   return value ? JSON.parse(value) : null;
 }
 
 export async function createAccount({ name, email, password }) {
-  const accounts = readAccounts();
-  const normalizedEmail = email.trim().toLocaleLowerCase();
-  if (accounts.some((account) => account.email === normalizedEmail)) {
+  const users = await getStoredUsers();
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
     throw new Error("An account with this email already exists.");
   }
 
   const salt = toHex(crypto.getRandomValues(new Uint8Array(16)));
-  const account = {
+
+  const user = {
     id: crypto.randomUUID(),
     name: name.trim(),
     email: normalizedEmail,
+    role: "user",
     passwordSalt: salt,
     passwordHash: await hashPassword(password, salt),
   };
-  saveAccounts([...accounts, account]);
-  return publicAccount(account);
+
+  const res = await fetch(`${BASE_URL}/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(user),
+  });
+
+  if (!res.ok) {
+    throw new Error("Could not create the account.");
+  }
+
+  return publicUser(user);
 }
 
 export async function authenticateAccount({ email, password }) {
-  const normalizedEmail = email.trim().toLocaleLowerCase();
-  const account = readAccounts().find(
-    (candidate) => candidate.email === normalizedEmail,
-  );
-  if (!account) throw new Error("Invalid email or password.");
+  const users = await getStoredUsers();
 
-  const passwordHash = await hashPassword(password, account.passwordSalt);
-  if (passwordHash !== account.passwordHash) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const user = users.find(
+    (candidate) => candidate.email.toLowerCase() === normalizedEmail,
+  );
+
+  if (!user) {
     throw new Error("Invalid email or password.");
   }
-  return publicAccount(account);
+
+  const passwordHash = await hashPassword(password, user.passwordSalt);
+
+  if (passwordHash !== user.passwordHash) {
+    throw new Error("Invalid email or password.");
+  }
+
+  return publicUser(user);
 }
 
-export function saveSession(account) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(account));
+export function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
 }
 
 export function clearSession() {
   localStorage.removeItem(SESSION_KEY);
 }
 
-export function updateAccount(id, { name, email }) {
-  const accounts = readAccounts();
-  const normalizedEmail = email.trim().toLocaleLowerCase();
-  const duplicate = accounts.find(
-    (account) => account.id !== id && account.email === normalizedEmail,
-  );
-  if (duplicate) throw new Error("An account with this email already exists.");
+export async function updateAccount(id, { name, email }) {
+  const users = await getStoredUsers();
 
-  const index = accounts.findIndex((account) => account.id === id);
-  if (index < 0) throw new Error("The current account could not be found.");
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const duplicate = users.find(
+    (user) => user.id !== id && user.email.toLowerCase() === normalizedEmail,
+  );
+
+  if (duplicate) {
+    throw new Error("An account with this email already exists.");
+  }
+
+  const currentUser = users.find((user) => user.id === id);
+
+  if (!currentUser) {
+    throw new Error("The current account could not be found.");
+  }
 
   const updated = {
-    ...accounts[index],
+    ...currentUser,
     name: name.trim(),
     email: normalizedEmail,
   };
-  accounts[index] = updated;
-  saveAccounts(accounts);
-  return publicAccount(updated);
+
+  const res = await fetch(`${BASE_URL}/users/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(updated),
+  });
+
+  if (!res.ok) {
+    throw new Error("Could not update the account.");
+  }
+
+  return publicUser(updated);
 }

@@ -1,116 +1,151 @@
 {
+  "users": [
+    {
+      "id": "admin-001",
+      "name": "Admin",
+      "email": "admin@projecthub.com",
+      "role": "admin",
+      "passwordSalt": "427ca2a90708a822bfa850663788259b",
+      "passwordHash": "dcdb9c218e05a7ee7e06f09078c917fda57c5a4f4291c14481606a3ee1126618"
+    },
+    {
+      "id": "user-54594df7-7041-4338-8ddf-858993fea47c",
+      "name": "Marina Mirzaee",
+      "email": "marina@example.com",
+      "role": "user",
+      "passwordSalt": "71573c107ba916b7f26758bc0b1529f3",
+      "passwordHash": "d6cf7410d8ef3cdde6932a2b404042767efe475d83f8d11e4a55e9d4b3a4efda"
+    },
+    {
+      "id": "sara-001",
+      "name": "Sara Ahmadi",
+      "email": "sara@example.com",
+      "role": "user",
+      "passwordSalt": "b8c23cdf7cc03eb9113c2e3863035038",
+      "passwordHash": "1d505e12d3226b31184ac5f37a436171f1248f08fd3df922f41f48f8fada42bc"
+    },
+    {
+      "id": "ahmad-001",
+      "name": "Ahmad Hashemi",
+      "email": "ahmad@example.com",
+      "role": "user",
+      "passwordSalt": "a7d99ed88386d73fb2d7d7df6ba4e2dc",
+      "passwordHash": "be781af783ff9ebb1fb74f1df3281e33fe294606979f65e31cf86cdf2fd268bc"
+    }
+  ],
   "projects": [
     {
+      "id": 1,
       "title": "webapp",
       "owner": "user-54594df7-7041-4338-8ddf-858993fea47c",
       "members": [
-        "sara"
+        "sara-001"
       ],
       "createdAt": "2026-11-02T06:11:37.851Z",
       "updatedAt": "2026-11-02T06:20:14.471Z",
-      "completedAt": null,
-      "id": 1
+      "completedAt": null
     },
     {
+      "id": 2,
       "title": "homepage",
       "owner": "user-54594df7-7041-4338-8ddf-858993fea47c",
       "members": [],
       "createdAt": "2026-11-02T06:13:54.428Z",
       "updatedAt": "2026-11-02T06:13:54.428Z",
-      "completedAt": null,
-      "id": 2
+      "completedAt": null
     },
     {
+      "id": 3,
       "title": "Dashboard",
       "owner": "user-54594df7-7041-4338-8ddf-858993fea47c",
       "members": [
-        "sara",
-        "marina"
+        "sara-001",
+        "ahmad-001"
       ],
       "createdAt": "2026-11-03T18:15:22.741Z",
       "updatedAt": "2026-11-03T18:16:01.767Z",
-      "completedAt": "2026-11-03T18:16:01.767Z",
-      "id": 3
+      "completedAt": "2026-11-03T18:16:01.767Z"
     },
     {
+      "id": 4,
       "title": "Test",
       "owner": "user-54594df7-7041-4338-8ddf-858993fea47c",
       "members": [
-        "marina"
+        "sara-001"
       ],
       "createdAt": "2026-11-03T18:38:25.862Z",
       "updatedAt": "2026-11-03T18:38:25.862Z",
-      "completedAt": null,
-      "id": 4
+      "completedAt": null
     },
     {
-      "title": "Test",
-      "owner": "cbac754a-a3f0-4996-8a4f-befd09b24b14",
+      "id": 5,
+      "title": "Sara Project",
+      "owner": "sara-001",
       "members": [
-        "Sara"
+        "user-54594df7-7041-4338-8ddf-858993fea47c",
+        "ahmad-001"
       ],
       "createdAt": "2026-11-08T07:23:38.600Z",
       "updatedAt": "2026-11-08T07:23:38.600Z",
-      "completedAt": null,
-      "id": 5
+      "completedAt": null
     }
   ],
   "tasks": [
     {
+      "id": 3,
       "title": "Form",
       "priority": "high",
       "status": "in-progress",
-      "assignee": "Ahmad",
+      "assignee": "sara-001",
       "projectId": 1,
       "parentId": null,
       "dueDate": "2026-11-03",
       "createdBy": "user-54594df7-7041-4338-8ddf-858993fea47c",
       "createdAt": "2026-11-03T18:18:48.466Z",
       "updatedAt": "2026-11-03T18:18:48.466Z",
-      "completedAt": null,
-      "id": 3
+      "completedAt": null
     },
     {
+      "id": 4,
       "title": "Test",
       "priority": "high",
       "status": "done",
-      "assignee": "sara",
+      "assignee": "sara-001",
       "projectId": 1,
       "parentId": null,
       "dueDate": "2026-12-08",
       "createdBy": "user-54594df7-7041-4338-8ddf-858993fea47c",
       "createdAt": "2026-11-03T18:22:27.371Z",
       "updatedAt": "2026-11-03T18:22:27.371Z",
-      "completedAt": "2026-11-03T18:22:27.371Z",
-      "id": 4
+      "completedAt": "2026-11-03T18:22:27.371Z"
     },
     {
+      "id": 5,
       "title": "Test",
       "priority": "medium",
       "status": "todo",
-      "assignee": "Marina Mirzaee",
+      "assignee": "user-54594df7-7041-4338-8ddf-858993fea47c",
       "projectId": 4,
       "parentId": null,
       "dueDate": "2026-11-25",
       "createdBy": "user-54594df7-7041-4338-8ddf-858993fea47c",
       "createdAt": "2026-11-03T18:39:54.850Z",
       "updatedAt": "2026-11-03T18:39:54.850Z",
-      "completedAt": null,
-      "id": 5
+      "completedAt": null
     },
     {
+      "id": 6,
       "title": "Test",
       "priority": "high",
       "status": "done",
-      "assignee": "Sara",
+      "assignee": "sara-001",
       "projectId": 5,
       "parentId": null,
       "dueDate": "2026-11-07",
-      "createdBy": "cbac754a-a3f0-4996-8a4f-befd09b24b14",
+      "createdBy": "sara-001",
       "createdAt": "2026-11-08T07:27:39.205Z",
       "updatedAt": "2026-11-08T07:28:00.190Z",
-      "completedAt": "2026-11-08T07:27:39.205Z",
-      "id": 6
+      "completedAt": "2026-11-08T07:27:39.205Z"
     }
   ]
 }
