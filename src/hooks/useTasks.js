@@ -1,40 +1,58 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { getTasks, createTask, updateTask, deleteTask } from "../api/tasks";
 
-export function useTasks() {
-  return useQuery({ queryKey: ["tasks"], queryFn: getTasks });
+import { useAuth } from "../context/useAuth";
+
+export function useTasks(projectIds) {
+  return useQuery({
+    queryKey: ["tasks", projectIds],
+    queryFn: () => getTasks(projectIds),
+    enabled: Array.isArray(projectIds),
+  });
 }
 
 export function useCreateTask() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: createTask,
-    onSuccess: (created) => {
-      queryClient.setQueryData(["tasks"], (old = []) => [...old, created]);
+    mutationFn: (data) => createTask(data, user),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["tasks"],
+      });
     },
   });
 }
 
 export function useUpdateTask() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ id, data }) => updateTask(id, data),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["tasks"], (old = []) =>
-        old.map((t) => (t.id === updated.id ? updated : t)),
-      );
+    mutationFn: ({ id, data }) => updateTask(id, data, user),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["tasks"],
+      });
     },
   });
 }
 
 export function useDeleteTask() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: deleteTask,
-    onSuccess: (_, id) => {
-      queryClient.setQueryData(["tasks"], (old = []) =>
-        old.filter((t) => t.id !== id),
-      );
+    mutationFn: (id) => deleteTask(id, user),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["tasks"],
+      });
     },
   });
 }

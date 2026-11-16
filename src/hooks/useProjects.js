@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import {
   getProjects,
   getProject,
@@ -7,50 +8,73 @@ import {
   deleteProject,
 } from "../api/projects";
 
-// query: read the list
-export function useProjects() {
-  return useQuery({ queryKey: ["projects"], queryFn: getProjects });
-}
+import { useAuth } from "../context/useAuth";
 
-// query: read one project
-export function useProject(id) {
+export function useProjects() {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ["projects", id],
-    queryFn: () => getProject(id),
+    queryKey: ["projects", user?.id, user?.role],
+    queryFn: () => getProjects(user),
+    enabled: Boolean(user),
   });
 }
 
-// mutation: the server's answer the new project goes straight into the cache
+export function useProject(id) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["projects", id, user?.id, user?.role],
+    queryFn: () => getProject(id, user),
+    enabled: Boolean(user && id),
+  });
+}
+
 export function useCreateProject() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: createProject,
-    onSuccess: (created) => {
-      queryClient.setQueryData(["projects"], (old = []) => [...old, created]);
+    mutationFn: (data) => createProject(data, user),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["projects"],
+      });
     },
   });
 }
 
 export function useUpdateProject() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ id, data }) => updateProject(id, data),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["projects"], (old = []) =>
-        old.map((p) => (p.id === updated.id ? updated : p)),
-      );
+    mutationFn: ({ id, data }) => updateProject(id, data, user),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["projects"],
+      });
     },
   });
 }
 
 export function useDeleteProject() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: deleteProject,
-    onSuccess: (_, id) => {
-      queryClient.setQueryData(["projects"], (old = []) =>
-        old.filter((p) => p.id !== id),
-      );
+    mutationFn: (id) => deleteProject(id, user),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["projects"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["tasks"],
+      });
     },
   });
 }
