@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// shared by the project and task schemas
 export const titleField = z
   .string()
   .trim()
@@ -10,14 +9,9 @@ export const titleField = z
 
 export const projectSchema = z.object({
   title: titleField,
-  // "Sara, Marina" -> ["Sara", "Marina"]
-  members: z.string().transform((value) =>
-    value
-      .split(",")
-      .map((m) => m.trim())
-      .filter(Boolean),
-  ),
-  // an unchecked checkbox is missing from FormData a checked one is "on"
+
+  members: z.array(z.string()),
+
   completed: z
     .string()
     .optional()

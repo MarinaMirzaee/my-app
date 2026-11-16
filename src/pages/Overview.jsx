@@ -4,7 +4,10 @@ import LoadingState from "../components/LoadingState";
 
 function Overview() {
   const projectsQuery = useProjects();
-  const tasksQuery = useTasks();
+
+  const projectIds = projectsQuery.data?.map((project) => project.id);
+
+  const tasksQuery = useTasks(projectIds);
 
   if (projectsQuery.isPending || tasksQuery.isPending) {
     return <LoadingState message="Loading overview..." />;
@@ -19,19 +22,23 @@ function Overview() {
   }
 
   const tasks = tasksQuery.data;
+
   const stats = [
-    { label: "Projects", value: projectsQuery.data.length },
+    {
+      label: "Projects",
+      value: projectsQuery.data.length,
+    },
     {
       label: "Open tasks",
-      value: tasks.filter((t) => t.status !== "done").length,
+      value: tasks.filter((task) => task.status !== "done").length,
     },
     {
       label: "Completed",
-      value: tasks.filter((t) => t.status === "done").length,
+      value: tasks.filter((task) => task.status === "done").length,
     },
     {
       label: "Assignees",
-      value: new Set(tasks.map((t) => t.assignee).filter(Boolean)).size,
+      value: new Set(tasks.map((task) => task.assignee).filter(Boolean)).size,
     },
   ];
 
@@ -43,6 +50,7 @@ function Overview() {
         {stats.map((item) => (
           <div key={item.label} className="rounded bg-white p-5 shadow">
             <p className="text-sm text-gray-500">{item.label}</p>
+
             <p className="text-3xl font-bold">{item.value}</p>
           </div>
         ))}

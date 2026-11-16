@@ -8,7 +8,9 @@ import {
 } from "../hooks/useTasks";
 
 import { useProjects } from "../hooks/useProjects";
-import { getUserId } from "../utils/user";
+import { useUsers } from "../hooks/useUsers";
+import { useAuth } from "../context/useAuth";
+
 import { validate } from "../utils/validate";
 import { formatDate, formatDueDate, isOverdue } from "../utils/date";
 
@@ -17,19 +19,32 @@ import { taskSchema } from "../schemas/schemas/taskSchema";
 import TaskModal from "../components/TaskModal";
 import LoadingState from "../components/LoadingState";
 import SearchFilter from "../components/SearchFilter";
+
 import { filterBySearch } from "../utils/filter";
 
 function Tasks() {
-  const tasksQuery = useTasks();
+  const { user } = useAuth();
+
   const projectsQuery = useProjects();
 
+  const projectIds = projectsQuery.data?.map((project) => project.id);
+
+  const tasksQuery = useTasks(projectIds);
+
+  const usersQuery = useUsers();
+
   const createMutation = useCreateTask();
+
   const updateMutation = useUpdateTask();
+
   const deleteMutation = useDeleteTask();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [taskData, setTaskData] = useState(null);
+
   const [errors, setErrors] = useState({});
+
   const [search, setSearch] = useState("");
 
   function openCreate() {
@@ -48,24 +63,29 @@ function Tasks() {
     setIsModalOpen(false);
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(event) {
+    event.preventDefault();
 
-    const formData = Object.fromEntries(new FormData(e.currentTarget));
+    const formData = new FormData(event.currentTarget);
 
-    const { data, errors: validationErrors } = validate(taskSchema, formData);
+    const { data, errors: validationErrors } = validate(
+      taskSchema,
+      Object.fromEntries(formData.entries()),
+    );
 
     setErrors(validationErrors);
 
     if (!data) return;
 
     const now = new Date().toISOString();
+
     const isDone = data.status === "done";
 
     try {
       if (taskData) {
         await updateMutation.mutateAsync({
           id: taskData.id,
+
           data: {
             ...data,
             updatedAt: now,
@@ -75,7 +95,7 @@ function Tasks() {
       } else {
         await createMutation.mutateAsync({
           ...data,
-          createdBy: getUserId(),
+          createdBy: user.id,
           createdAt: now,
           updatedAt: now,
           completedAt: isDone ? now : null,
@@ -83,38 +103,30 @@ function Tasks() {
       }
 
       closeModal();
-    } catch {
+    } catch (error) {
       setErrors({
-        form: "Could not save the task. Is the server running?",
+        form: error.message || "Could not save the task.",
       });
     }
   }
 
-  async function handleDelete(id) {
-    const subtasks = tasksQuery.data.filter((task) => task.parentId === id);
-
-    const message = subtasks.length
-      ? `Delete this task and its ${subtasks.length} subtask(s)?`
-      : "Delete this task?";
-
-    if (!window.confirm(message)) return;
+  async function handleDelete(task) {
+    if (!window.confirm("Delete this task and all of its subtasks?")) {
+      return;
+    }
 
     try {
-      await Promise.all(
-        subtasks.map((task) => deleteMutation.mutateAsync(task.id)),
-      );
-
-      await deleteMutation.mutateAsync(id);
-    } catch {
-      alert("Could not delete the task.");
+      await deleteMutation.mutateAsync(task.id);
+    } catch (error) {
+      alert(error.message || "Could not delete the task.");
     }
   }
 
-  if (tasksQuery.isPending || projectsQuery.isPending) {
+  if (projectsQuery.isPending || tasksQuery.isPending || usersQuery.isPending) {
     return <LoadingState message="Loading tasks..." />;
   }
 
-  if (tasksQuery.isError || projectsQuery.isError) {
+  if (projectsQuery.isError || tasksQuery.isError || usersQuery.isError) {
     return (
       <p className="text-sm text-red-600">
         Could not load tasks. Is the server running?
@@ -123,15 +135,27 @@ function Tasks() {
   }
 
   const tasks = tasksQuery.data;
+
   const projects = projectsQuery.data;
 
+  const users = usersQuery.data;
+
   function projectName(id) {
-    const project = projects.find((p) => p.id === id);
+    const project = projects.find((project) => project.id === id);
+
     return project ? project.title : "-";
   }
 
+  function userName(id) {
+    const found = users.find((user) => user.id === id);
+
+    return found ? found.name : "Unknown user";
+  }
+
   function parentName(id) {
-    if (id === null) return "-";
+    if (id === null) {
+      return "-";
+    }
 
     const parent = tasks.find((task) => task.id === id);
 
@@ -142,8 +166,11 @@ function Tasks() {
     ...task,
     projectTitle: projectName(task.projectId),
     parentTitle: parentName(task.parentId),
+    assigneeName: userName(task.assignee),
   }));
+
   const filteredTasks = filterBySearch(searchableTasks, search);
+
   const projectGroups = projects
     .map((project) => ({
       id: project.id,
@@ -151,30 +178,36 @@ function Tasks() {
       tasks: filteredTasks.filter((task) => task.projectId === project.id),
     }))
     .filter((group) => group.tasks.length > 0);
-  const unlistedTasks = filteredTasks.filter(
-    (task) => !projects.some((project) => project.id === task.projectId),
-  );
 
   function renderTaskRows(groupTasks) {
     return groupTasks.map((task) => (
       <tr key={task.id} className="border-t">
         <td className="p-3 font-medium">{task.title}</td>
+
         <td className="p-3">{task.priority}</td>
+
         <td className="p-3">{task.status}</td>
-        <td className="p-3">{task.assignee || "-"}</td>
+
+        <td className="p-3">{userName(task.assignee)}</td>
+
         <td className="p-3">{projectName(task.projectId)}</td>
+
         <td className="p-3">{parentName(task.parentId)}</td>
+
         <td
-          className={`p-3 ${
-            isOverdue(task) ? "font-medium text-red-600" : ""
-          }`}
+          className={`p-3 ${isOverdue(task) ? "font-medium text-red-600" : ""}`}
         >
           {formatDueDate(task.dueDate)}
         </td>
-        <td className="p-3">{task.createdBy}</td>
+
+        <td className="p-3">{userName(task.createdBy)}</td>
+
         <td className="p-3">{formatDate(task.createdAt)}</td>
+
         <td className="p-3">{formatDate(task.updatedAt)}</td>
+
         <td className="p-3">{formatDate(task.completedAt)}</td>
+
         <td className="p-3 whitespace-nowrap">
           <button
             onClick={() => openEdit(task)}
@@ -182,8 +215,9 @@ function Tasks() {
           >
             Edit
           </button>
+
           <button
-            onClick={() => handleDelete(task.id)}
+            onClick={() => handleDelete(task)}
             className="text-red-600 hover:underline"
           >
             Delete
@@ -209,7 +243,7 @@ function Tasks() {
 
       {projects.length === 0 && (
         <p className="mb-4 text-sm text-gray-500">
-          Create a project first. Every task belongs to a project.
+          Create or join a project first.
         </p>
       )}
 
@@ -229,31 +263,42 @@ function Tasks() {
         </p>
       ) : (
         <div className="space-y-6">
-          {[...projectGroups, ...(unlistedTasks.length
-            ? [{ id: "unknown", title: "Unknown project", tasks: unlistedTasks }]
-            : [])].map((group) => (
+          {projectGroups.map((group) => (
             <section key={group.id}>
               <h2 className="mb-2 text-lg font-semibold">
                 {group.title} ({group.tasks.length})
               </h2>
+
               <div className="overflow-x-auto rounded bg-white shadow">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-gray-50 text-gray-600">
                     <tr>
                       <th className="p-3">Title</th>
+
                       <th className="p-3">Priority</th>
+
                       <th className="p-3">Status</th>
+
                       <th className="p-3">Assignee</th>
+
                       <th className="p-3">Project</th>
+
                       <th className="p-3">Parent</th>
+
                       <th className="p-3">Due date</th>
+
                       <th className="p-3">Created by</th>
+
                       <th className="p-3">Created</th>
+
                       <th className="p-3">Updated</th>
+
                       <th className="p-3">Completed</th>
+
                       <th className="p-3">Actions</th>
                     </tr>
                   </thead>
+
                   <tbody>{renderTaskRows(group.tasks)}</tbody>
                 </table>
               </div>
@@ -267,6 +312,7 @@ function Tasks() {
           taskData={taskData}
           projects={projects}
           allTasks={tasks}
+          users={users}
           errors={errors}
           isSaving={createMutation.isPending || updateMutation.isPending}
           onSubmit={handleSubmit}

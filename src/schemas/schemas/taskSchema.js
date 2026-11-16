@@ -11,17 +11,15 @@ export const taskSchema = z.object({
   assignee: z
     .string()
     .trim()
-    .max(40, "Assignee must be 40 characters or less."),
+    .min(1, "Choose an assignee.")
+    .max(100, "Assignee is too long."),
 
-  // A task must belong to a project
   projectId: z.string().min(1, "Choose a project.").transform(Number),
 
-  // Empty parentId means main task
   parentId: z
     .string()
     .transform((value) => (value === "" ? null : Number(value))),
 
-  // Empty dueDate becomes null
   dueDate: z
     .string()
     .refine(

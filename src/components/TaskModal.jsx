@@ -1,30 +1,30 @@
 import { useState } from "react";
 
-// No submit function here: the form uses onSubmit from the page directly.
 function TaskModal({
   taskData,
   projects,
   allTasks,
+  users,
   errors,
   isSaving,
   onSubmit,
   onClose,
 }) {
-  // the only state in this modal: the parent list depends on the chosen project
   const [selectedProjectId, setSelectedProjectId] = useState(
-    taskData ? taskData.projectId : projects[0].id,
+    taskData ? taskData.projectId : projects[0]?.id,
   );
 
-  // a parent must be a main task of the same project, and not the task itself
   const parentOptions = allTasks.filter(
-    (t) =>
-      t.projectId === Number(selectedProjectId) &&
-      t.parentId === null &&
-      (!taskData || t.id !== taskData.id),
+    (task) =>
+      task.projectId === Number(selectedProjectId) &&
+      task.parentId === null &&
+      (!taskData || task.id !== taskData.id),
   );
 
   const fieldClass = "w-full rounded border border-gray-300 px-3 py-2";
+
   const labelClass = "mb-1 block text-sm text-gray-600";
+
   const errorClass = "mb-3 mt-1 min-h-5 text-sm text-red-600";
 
   return (
@@ -43,85 +43,108 @@ function TaskModal({
         </h2>
 
         <label className={labelClass}>Title</label>
+
         <input
           name="title"
-          defaultValue={taskData?.title}
+          defaultValue={taskData?.title ?? ""}
           className={`${fieldClass} ${errors.title ? "border-red-500" : ""}`}
         />
+
         <p className={errorClass}>{errors.title}</p>
 
         <div className="mb-4 grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Priority</label>
+
             <select
               name="priority"
               defaultValue={taskData?.priority ?? "medium"}
               className={fieldClass}
             >
               <option value="low">Low</option>
+
               <option value="medium">Medium</option>
+
               <option value="high">High</option>
             </select>
           </div>
 
           <div>
             <label className={labelClass}>Status</label>
+
             <select
               name="status"
               defaultValue={taskData?.status ?? "todo"}
               className={fieldClass}
             >
               <option value="todo">To Do</option>
+
               <option value="in-progress">In Progress</option>
+
               <option value="done">Done</option>
             </select>
           </div>
         </div>
 
         <label className={labelClass}>Assignee</label>
-        <input
+
+        <select
           name="assignee"
-          defaultValue={taskData?.assignee}
-          placeholder="Sara"
+          defaultValue={taskData?.assignee ?? ""}
           className={`${fieldClass} ${errors.assignee ? "border-red-500" : ""}`}
-        />
+        >
+          <option value="">Select a user</option>
+
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name} — {user.email}
+            </option>
+          ))}
+        </select>
+
         <p className={errorClass}>{errors.assignee}</p>
 
         <label className={labelClass}>Due date (optional)</label>
+
         <input
           type="date"
           name="dueDate"
           defaultValue={taskData?.dueDate ?? ""}
           className={`${fieldClass} ${errors.dueDate ? "border-red-500" : ""}`}
         />
+
         <p className={errorClass}>{errors.dueDate}</p>
 
         <label className={labelClass}>Project</label>
+
         <select
           name="projectId"
           value={selectedProjectId}
-          onChange={(e) => setSelectedProjectId(e.target.value)}
+          onChange={(event) => setSelectedProjectId(event.target.value)}
           className={fieldClass}
         >
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.title}
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.title}
             </option>
           ))}
         </select>
+
         <p className={errorClass}>{errors.projectId}</p>
 
         <label className={labelClass}>Parent task (optional)</label>
+
         <select
-          key={selectedProjectId} // resets the choice when the project changes
+          key={selectedProjectId}
           name="parentId"
           defaultValue={taskData?.parentId ?? ""}
           className="mb-6 w-full rounded border border-gray-300 px-3 py-2"
         >
           <option value="">None (main task)</option>
-          {parentOptions.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.title}
+
+          {parentOptions.map((task) => (
+            <option key={task.id} value={task.id}>
+              {task.title}
             </option>
           ))}
         </select>
@@ -138,6 +161,7 @@ function TaskModal({
           >
             Cancel
           </button>
+
           <button
             type="submit"
             disabled={isSaving}

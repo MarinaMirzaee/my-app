@@ -1,32 +1,46 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+
 import {
   useProjects,
   useCreateProject,
   useUpdateProject,
   useDeleteProject,
 } from "../hooks/useProjects";
-import { useTasks, useDeleteTask } from "../hooks/useTasks";
-import { getUserId } from "../utils/user";
+
+import { useUsers } from "../hooks/useUsers";
+
+import { useAuth } from "../context/useAuth";
+
 import { validate } from "../utils/validate";
 import { formatDate } from "../utils/date";
 import { projectSchema } from "../schemas/projectSchema";
+import { canManageProject } from "../utils/permissions";
+
 import ProjectModal from "../components/ProjectModal";
 import LoadingState from "../components/LoadingState";
 import SearchFilter from "../components/SearchFilter";
+
 import { filterBySearch } from "../utils/filter";
 
 function Projects() {
+  const { user } = useAuth();
+
   const projectsQuery = useProjects();
-  const tasksQuery = useTasks();
+  const usersQuery = useUsers();
+
   const createMutation = useCreateProject();
+
   const updateMutation = useUpdateProject();
+
   const deleteMutation = useDeleteProject();
-  const deleteTaskMutation = useDeleteTask();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [projectData, setProjectData] = useState(null); // null = create mode
+
+  const [projectData, setProjectData] = useState(null);
+
   const [errors, setErrors] = useState({});
+
   const [search, setSearch] = useState("");
 
   function openCreate() {
@@ -45,15 +59,19 @@ function Projects() {
     setIsModalOpen(false);
   }
 
-  // the only submit function: the form calls it directly
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(event) {
+    event.preventDefault();
 
-    const { data, errors: validationErrors } = validate(
-      projectSchema,
-      Object.fromEntries(new FormData(e.currentTarget)),
-    );
+    const formData = new FormData(event.currentTarget);
+
+    const values = Object.fromEntries(formData.entries());
+
+    values.members = formData.getAll("members");
+
+    const { data, errors: validationErrors } = validate(projectSchema, values);
+
     setErrors(validationErrors);
+
     if (!data) return;
 
     const now = new Date().toISOString();
@@ -62,6 +80,7 @@ function Projects() {
       if (projectData) {
         await updateMutation.mutateAsync({
           id: projectData.id,
+
           data: {
             title: data.title,
             members: data.members,
@@ -72,60 +91,68 @@ function Projects() {
       } else {
         await createMutation.mutateAsync({
           title: data.title,
-          owner: getUserId(),
           members: data.members,
           createdAt: now,
           updatedAt: now,
           completedAt: data.completed ? now : null,
         });
       }
+
       closeModal();
-    } catch {
-      setErrors({ form: "Could not save the project. Is the server running?" });
+    } catch (error) {
+      setErrors({
+        form: error.message || "Could not save the project.",
+      });
     }
   }
 
-  async function handleDelete(id) {
-    if (!tasksQuery.isSuccess) {
-      alert("Tasks are not loaded yet. Try again in a moment.");
+  async function handleDelete(project) {
+    if (!canManageProject(user, project)) {
       return;
     }
 
-    const projectTasks = tasksQuery.data.filter((t) => t.projectId === id);
-    const message = projectTasks.length
-      ? `Delete this project and its ${projectTasks.length} task(s)?`
-      : "Delete this project?";
-    if (!window.confirm(message)) return;
+    const message = "Delete this project and all of its tasks?";
+
+    if (!window.confirm(message)) {
+      return;
+    }
 
     try {
-      await Promise.all(
-        projectTasks.map((t) => deleteTaskMutation.mutateAsync(t.id)),
-      );
-      await deleteMutation.mutateAsync(id);
-    } catch {
-      alert("Could not delete the project.");
+      await deleteMutation.mutateAsync(project.id);
+    } catch (error) {
+      alert(error.message || "Could not delete the project.");
     }
   }
 
-  if (projectsQuery.isPending) {
+  if (projectsQuery.isPending || usersQuery.isPending) {
     return <LoadingState message="Loading projects..." />;
   }
 
-  if (projectsQuery.isError) {
+  if (projectsQuery.isError || usersQuery.isError) {
     return (
       <p className="text-sm text-red-600">
-        Could not load projects. Is the server running?
+        Could not load projects or users. Is the server running?
       </p>
     );
   }
 
   const projects = projectsQuery.data;
+
+  const users = usersQuery.data;
+
   const filteredProjects = filterBySearch(projects, search);
+
+  function userName(id) {
+    const found = users.find((user) => user.id === id);
+
+    return found ? found.name : "Unknown user";
+  }
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Projects</h1>
+
         <button
           onClick={openCreate}
           className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
@@ -147,14 +174,21 @@ function Projects() {
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th className="p-3">Title</th>
+
               <th className="p-3">Owner</th>
+
               <th className="p-3">Members</th>
+
               <th className="p-3">Created</th>
+
               <th className="p-3">Updated</th>
+
               <th className="p-3">Completed</th>
+
               <th className="p-3">Actions</th>
             </tr>
           </thead>
+
           <tbody>
             {filteredProjects.length === 0 && (
               <tr>
@@ -165,37 +199,57 @@ function Projects() {
                 </td>
               </tr>
             )}
-            {filteredProjects.map((project) => (
-              <tr key={project.id} className="border-t">
-                <td className="p-3">
-                  <Link
-                    to={`/dashboard/projects/${project.id}`}
-                    className="font-medium text-indigo-600 hover:underline"
-                  >
-                    {project.title}
-                  </Link>
-                </td>
-                <td className="p-3">{project.owner}</td>
-                <td className="p-3">{project.members.join(", ") || "-"}</td>
-                <td className="p-3">{formatDate(project.createdAt)}</td>
-                <td className="p-3">{formatDate(project.updatedAt)}</td>
-                <td className="p-3">{formatDate(project.completedAt)}</td>
-                <td className="p-3">
-                  <button
-                    onClick={() => openEdit(project)}
-                    className="mr-3 text-indigo-600 hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(project.id)}
-                    className="text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+
+            {filteredProjects.map((project) => {
+              const canManage = canManageProject(user, project);
+
+              return (
+                <tr key={project.id} className="border-t">
+                  <td className="p-3">
+                    <Link
+                      to={`/dashboard/projects/${project.id}`}
+                      className="font-medium text-indigo-600 hover:underline"
+                    >
+                      {project.title}
+                    </Link>
+                  </td>
+
+                  <td className="p-3">{userName(project.owner)}</td>
+
+                  <td className="p-3">
+                    {project.members.map(userName).join(", ") || "-"}
+                  </td>
+
+                  <td className="p-3">{formatDate(project.createdAt)}</td>
+
+                  <td className="p-3">{formatDate(project.updatedAt)}</td>
+
+                  <td className="p-3">{formatDate(project.completedAt)}</td>
+
+                  <td className="p-3">
+                    {canManage ? (
+                      <>
+                        <button
+                          onClick={() => openEdit(project)}
+                          className="mr-3 text-indigo-600 hover:underline"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(project)}
+                          className="text-red-600 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-400">View only</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -203,6 +257,7 @@ function Projects() {
       {isModalOpen && (
         <ProjectModal
           projectData={projectData}
+          users={users}
           errors={errors}
           isSaving={createMutation.isPending || updateMutation.isPending}
           onSubmit={handleSubmit}
