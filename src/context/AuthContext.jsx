@@ -9,26 +9,27 @@ import {
   saveSession,
   updateAccount as updateStoredAccount,
 } from "../api/auth";
+import { getAccessToken } from "../api/client";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getSavedSession);
 
   async function signUp(accountData) {
-    const account = await createAccount(accountData);
+    const session = await createAccount(accountData);
 
-    saveSession(account);
-    setUser(account);
+    saveSession(session);
+    setUser(session.user);
 
-    return account;
+    return session.user;
   }
 
   async function login(credentials) {
-    const account = await authenticateAccount(credentials);
+    const session = await authenticateAccount(credentials);
 
-    saveSession(account);
-    setUser(account);
+    saveSession(session);
+    setUser(session.user);
 
-    return account;
+    return session.user;
   }
 
   async function updateAccount(accountData) {
@@ -37,8 +38,7 @@ export function AuthProvider({ children }) {
     }
 
     const account = await updateStoredAccount(user.id, accountData);
-
-    saveSession(account);
+    saveSession({ user: account, token: getAccessToken() });
     setUser(account);
 
     return account;

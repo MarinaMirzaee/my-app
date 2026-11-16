@@ -1,34 +1,21 @@
-const BASE_URL = "http://localhost:3001";
-
-function publicUser(user) {
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-  };
-}
+import { apiFetch, readApiError } from "./client.js";
 
 export async function getUsers() {
-  const res = await fetch(`${BASE_URL}/users`);
+  const res = await apiFetch("/users");
 
   if (!res.ok) {
-    throw new Error("Failed to fetch users");
+    throw await readApiError(res, "Failed to fetch users.");
   }
 
-  const users = await res.json();
-
-  return users.map(publicUser);
+  return res.json();
 }
 
 export async function getUser(id) {
-  const res = await fetch(`${BASE_URL}/users/${id}`);
+  const res = await apiFetch(`/users/${encodeURIComponent(id)}`);
 
   if (!res.ok) {
-    throw new Error("User not found");
+    throw await readApiError(res, "User not found.");
   }
 
-  const user = await res.json();
-
-  return publicUser(user);
+  return res.json();
 }

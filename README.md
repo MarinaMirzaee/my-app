@@ -1,16 +1,35 @@
-# React + Vite
+# ProjectHub
 
 ## ProjectHub features
 
-- Project and task lists support searching across every record field. Results
-  update 300 ms after the user stops typing.
-- Project details are nested under `/dashboard/projects/:id` and share the
-  dashboard layout.
-- The sign-up, sign-in, and account profile flow is a local demonstration:
-  account records and sessions live in the current browser's `localStorage`.
-  Passwords are salted and hashed with PBKDF2, but client-side storage is not
-  production authentication. A production deployment needs a trusted server
-  for identity, authorization, and account storage.
+- User, project, and task records are stored in the root `db.json` file.
+- Start the API with `npm run server` and the Vite app with `npm run dev`.
+- Sign-up and sign-in are handled by the API. Password hashes are generated on
+  the server with PBKDF2; the browser stores only the signed session token and
+  public user details.
+- Project and task access is checked by the API. Regular users can access only
+  projects they own or belong to; admins can access and delete all projects.
+- New accounts always receive the `user` role. To grant admin access, change
+  the account's `role` to `admin` directly in `db.json` while the API is stopped.
+  Users cannot change their own role through the application.
+- API sessions expire after 12 hours. The development server generates a
+  temporary signing secret on startup, so users need to sign in again after
+  restarting it. Set `SESSION_SECRET` to a secure environment value for a
+  stable deployment.
+
+This local JSON-file API is intended for development and demonstrations. A
+production deployment should use a production database, HTTPS, and a managed
+secret.
+
+## Development
+
+```sh
+npm run server
+npm run dev
+npm test
+npm run lint
+npm run build
+```
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

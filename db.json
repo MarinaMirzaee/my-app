@@ -31,6 +31,22 @@
       "role": "user",
       "passwordSalt": "a7d99ed88386d73fb2d7d7df6ba4e2dc",
       "passwordHash": "be781af783ff9ebb1fb74f1df3281e33fe294606979f65e31cf86cdf2fd268bc"
+    },
+    {
+      "id": "9017965e-a150-44dc-b5a1-6b8595a7c9cd",
+      "name": "Marina Mirzaee",
+      "email": "marinamirzai774@gmail.com",
+      "role": "user",
+      "passwordSalt": "403813148c16fbc5038300ff8845c5bb",
+      "passwordHash": "41fbcb726e49f2a59265a915d8fff0b40d2a16896a65d6e8f4a95ccfcd3ebb45"
+    },
+    {
+      "id": "334c119e-a596-4c88-80db-acb76998de10",
+      "name": "Ali",
+      "email": "ali123@gmail.com",
+      "role": "user",
+      "passwordSalt": "24a2ffe311a70ceb5ff6b7c61a1ac2c3",
+      "passwordHash": "4053932db6419659e85c4596c9f6f110859a21cc75b0a05685073caa756057d7"
     }
   ],
   "projects": [
@@ -88,6 +104,28 @@
       "createdAt": "2026-11-08T07:23:38.600Z",
       "updatedAt": "2026-11-08T07:23:38.600Z",
       "completedAt": null
+    },
+    {
+      "title": "Test1",
+      "members": [
+        "sara-001"
+      ],
+      "createdAt": "2026-11-16T09:41:34.377Z",
+      "updatedAt": "2026-11-16T09:41:59.663Z",
+      "completedAt": "2026-11-16T09:41:59.663Z",
+      "owner": "9017965e-a150-44dc-b5a1-6b8595a7c9cd",
+      "id": 6
+    },
+    {
+      "title": "NewTest",
+      "members": [
+        "ahmad-001"
+      ],
+      "createdAt": "2026-11-16T09:46:21.732Z",
+      "updatedAt": "2026-11-16T09:46:42.145Z",
+      "completedAt": "2026-11-16T09:46:42.145Z",
+      "owner": "9017965e-a150-44dc-b5a1-6b8595a7c9cd",
+      "id": 7
     }
   ],
   "tasks": [
@@ -146,6 +184,20 @@
       "createdAt": "2026-11-08T07:27:39.205Z",
       "updatedAt": "2026-11-08T07:28:00.190Z",
       "completedAt": "2026-11-08T07:27:39.205Z"
+    },
+    {
+      "title": "Home",
+      "priority": "medium",
+      "status": "todo",
+      "assignee": "sara-001",
+      "projectId": 6,
+      "parentId": null,
+      "dueDate": "2023-02-03",
+      "createdBy": "9017965e-a150-44dc-b5a1-6b8595a7c9cd",
+      "createdAt": "2026-11-16T09:44:33.804Z",
+      "updatedAt": "2026-11-16T09:44:33.804Z",
+      "completedAt": null,
+      "id": 7
     }
   ]
 }

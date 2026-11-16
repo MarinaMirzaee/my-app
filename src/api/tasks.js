@@ -1,28 +1,27 @@
 import { canAccessProject } from "../utils/permissions";
-
-const BASE_URL = "http://localhost:3001";
+import { apiFetch, readApiError } from "./client.js";
 
 async function getProject(projectId) {
-  const res = await fetch(`${BASE_URL}/projects/${projectId}`);
+  const res = await apiFetch(`/projects/${projectId}`);
 
   if (!res.ok) {
-    throw new Error("Project not found");
+    throw await readApiError(res, "Project not found.");
   }
 
   return res.json();
 }
 
 async function userExists(userId) {
-  const res = await fetch(`${BASE_URL}/users/${userId}`);
+  const res = await apiFetch(`/users/${encodeURIComponent(userId)}`);
 
   return res.ok;
 }
 
 export async function getTasks(projectIds) {
-  const res = await fetch(`${BASE_URL}/tasks`);
+  const res = await apiFetch("/tasks");
 
   if (!res.ok) {
-    throw new Error("Failed to fetch tasks");
+    throw await readApiError(res, "Failed to fetch tasks.");
   }
 
   const tasks = await res.json();
@@ -49,7 +48,7 @@ export async function createTask(data, user) {
     throw new Error("The selected assignee does not exist.");
   }
 
-  const res = await fetch(`${BASE_URL}/tasks`, {
+  const res = await apiFetch("/tasks", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -58,17 +57,17 @@ export async function createTask(data, user) {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to create task");
+    throw await readApiError(res, "Failed to create task.");
   }
 
   return res.json();
 }
 
 export async function updateTask(id, data, user) {
-  const taskRes = await fetch(`${BASE_URL}/tasks/${id}`);
+  const taskRes = await apiFetch(`/tasks/${id}`);
 
   if (!taskRes.ok) {
-    throw new Error("Task not found");
+    throw await readApiError(taskRes, "Task not found.");
   }
 
   const currentTask = await taskRes.json();
@@ -83,7 +82,7 @@ export async function updateTask(id, data, user) {
     throw new Error("The selected assignee does not exist.");
   }
 
-  const res = await fetch(`${BASE_URL}/tasks/${id}`, {
+  const res = await apiFetch(`/tasks/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -92,53 +91,22 @@ export async function updateTask(id, data, user) {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to update task");
+    throw await readApiError(res, "Failed to update task.");
   }
 
   return res.json();
 }
 
 export async function deleteTask(id, user) {
-  const tasksRes = await fetch(`${BASE_URL}/tasks`);
+  const projectRes = await apiFetch(`/tasks/${id}`);
+  if (!projectRes.ok) throw await readApiError(projectRes, "Task not found.");
 
-  if (!tasksRes.ok) {
-    throw new Error("Could not load tasks.");
-  }
-
-  const tasks = await tasksRes.json();
-
-  const rootTask = tasks.find((task) => task.id === id);
-
-  if (!rootTask) {
-    throw new Error("Task not found");
-  }
-
-  const project = await getProject(rootTask.projectId);
-
+  const task = await projectRes.json();
+  const project = await getProject(task.projectId);
   if (!canAccessProject(user, project)) {
     throw new Error("You do not have permission to delete this task.");
   }
 
-  const idsToDelete = [];
-
-  function collectChildren(parentId) {
-    const children = tasks.filter((task) => task.parentId === parentId);
-
-    for (const child of children) {
-      collectChildren(child.id);
-      idsToDelete.push(child.id);
-    }
-  }
-
-  collectChildren(id);
-
-  idsToDelete.push(id);
-
-  await Promise.all(
-    idsToDelete.map((taskId) =>
-      fetch(`${BASE_URL}/tasks/${taskId}`, {
-        method: "DELETE",
-      }),
-    ),
-  );
+  const res = await apiFetch(`/tasks/${id}`, { method: "DELETE" });
+  if (!res.ok) throw await readApiError(res, "Could not delete task.");
 }

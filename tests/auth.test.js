@@ -1,26 +1,14 @@
 import assert from "node:assert/strict";
-import { webcrypto } from "node:crypto";
 import test from "node:test";
 import {
-  authenticateAccount,
   clearSession,
-  createAccount,
   getSavedSession,
   saveSession,
-  updateAccount,
 } from "../src/api/auth.js";
 
-test("accounts can sign up, sign in, update profile, and persist/logout sessions", async () => {
-  const originalStorage = Object.getOwnPropertyDescriptor(
-    globalThis,
-    "localStorage",
-  );
-  const originalCrypto = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+test("sessions persist a public user and token, then clear on logout", () => {
+  const originalStorage = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
   const values = new Map();
-  Object.defineProperty(globalThis, "crypto", {
-    configurable: true,
-    value: webcrypto,
-  });
   Object.defineProperty(globalThis, "localStorage", {
     configurable: true,
     value: {
@@ -31,53 +19,12 @@ test("accounts can sign up, sign in, update profile, and persist/logout sessions
   });
 
   try {
-    const account = await createAccount({
-      name: " Marina ",
-      email: "MARINA@example.com",
-      password: "passphrase-123",
-    });
+    const user = { id: "u1", name: "Marina", email: "marina@example.com", role: "user" };
+    saveSession({ user, token: "signed-token" });
+    assert.deepEqual(getSavedSession(), user);
 
-    assert.equal(account.name, "Marina");
-    assert.equal(account.email, "marina@example.com");
-    assert.equal(
-      (await authenticateAccount({
-        email: "Marina@example.com",
-        password: "passphrase-123",
-      })).id,
-      account.id,
-    );
-
-    await assert.rejects(
-      createAccount({
-        name: "Another user",
-        email: "marina@example.com",
-        password: "different-password",
-      }),
-      /already exists/,
-    );
-    await assert.rejects(
-      authenticateAccount({
-        email: account.email,
-        password: "wrong-password",
-      }),
-      /Invalid email or password/,
-    );
-
-    saveSession(account);
-    assert.equal(getSavedSession().id, account.id);
-
-    const updated = updateAccount(account.id, {
-      name: "Marina Mirzaee",
-      email: "marina.m@example.com",
-    });
-    assert.equal(updated.name, "Marina Mirzaee");
-    assert.equal(
-      (await authenticateAccount({
-        email: "marina.m@example.com",
-        password: "passphrase-123",
-      })).id,
-      account.id,
-    );
+    values.set("projectHubSession", JSON.stringify(user));
+    assert.equal(getSavedSession(), null);
 
     clearSession();
     assert.equal(getSavedSession(), null);
@@ -86,11 +33,6 @@ test("accounts can sign up, sign in, update profile, and persist/logout sessions
       Object.defineProperty(globalThis, "localStorage", originalStorage);
     } else {
       delete globalThis.localStorage;
-    }
-    if (originalCrypto) {
-      Object.defineProperty(globalThis, "crypto", originalCrypto);
-    } else {
-      delete globalThis.crypto;
     }
   }
 });

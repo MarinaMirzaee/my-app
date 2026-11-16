@@ -1,12 +1,11 @@
 import { canAccessProject, canManageProject } from "../utils/permissions";
-
-const BASE_URL = "http://localhost:3001";
+import { apiFetch, readApiError } from "./client.js";
 
 export async function getProjects(user) {
-  const res = await fetch(`${BASE_URL}/projects`);
+  const res = await apiFetch("/projects");
 
   if (!res.ok) {
-    throw new Error("Failed to fetch projects");
+    throw await readApiError(res, "Failed to fetch projects.");
   }
 
   const projects = await res.json();
@@ -19,10 +18,10 @@ export async function getProjects(user) {
 }
 
 export async function getProject(id, user) {
-  const res = await fetch(`${BASE_URL}/projects/${id}`);
+  const res = await apiFetch(`/projects/${id}`);
 
   if (!res.ok) {
-    throw new Error("Project not found");
+    throw await readApiError(res, "Project not found.");
   }
 
   const project = await res.json();
@@ -44,7 +43,7 @@ export async function createProject(data, user) {
     owner: user.id,
   };
 
-  const res = await fetch(`${BASE_URL}/projects`, {
+  const res = await apiFetch("/projects", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -53,17 +52,17 @@ export async function createProject(data, user) {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to create project");
+    throw await readApiError(res, "Failed to create project.");
   }
 
   return res.json();
 }
 
 export async function updateProject(id, data, user) {
-  const currentRes = await fetch(`${BASE_URL}/projects/${id}`);
+  const currentRes = await apiFetch(`/projects/${id}`);
 
   if (!currentRes.ok) {
-    throw new Error("Project not found");
+    throw await readApiError(currentRes, "Project not found.");
   }
 
   const currentProject = await currentRes.json();
@@ -72,7 +71,7 @@ export async function updateProject(id, data, user) {
     throw new Error("You do not have permission to edit this project.");
   }
 
-  const res = await fetch(`${BASE_URL}/projects/${id}`, {
+  const res = await apiFetch(`/projects/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -81,17 +80,17 @@ export async function updateProject(id, data, user) {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to update project");
+    throw await readApiError(res, "Failed to update project.");
   }
 
   return res.json();
 }
 
 export async function deleteProject(id, user) {
-  const projectRes = await fetch(`${BASE_URL}/projects/${id}`);
+  const projectRes = await apiFetch(`/projects/${id}`);
 
   if (!projectRes.ok) {
-    throw new Error("Project not found");
+    throw await readApiError(projectRes, "Project not found.");
   }
 
   const project = await projectRes.json();
@@ -100,29 +99,11 @@ export async function deleteProject(id, user) {
     throw new Error("You do not have permission to delete this project.");
   }
 
-  const tasksRes = await fetch(`${BASE_URL}/tasks`);
-
-  if (!tasksRes.ok) {
-    throw new Error("Could not load project tasks.");
-  }
-
-  const tasks = await tasksRes.json();
-
-  const projectTasks = tasks.filter((task) => task.projectId === project.id);
-
-  await Promise.all(
-    projectTasks.map((task) =>
-      fetch(`${BASE_URL}/tasks/${task.id}`, {
-        method: "DELETE",
-      }),
-    ),
-  );
-
-  const res = await fetch(`${BASE_URL}/projects/${id}`, {
+  const res = await apiFetch(`/projects/${id}`, {
     method: "DELETE",
   });
 
   if (!res.ok) {
-    throw new Error("Failed to delete project");
+    throw await readApiError(res, "Failed to delete project.");
   }
 }

@@ -8,5 +8,8 @@ export default defineConfig({
     watch: {
       ignored: ["**/db.json"],
     },
+    fs: {
+      deny: ["**/db.json"],
+    },
   },
 });

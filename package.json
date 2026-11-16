@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "test": "node --test",
     "preview": "vite preview",
-    "server": "json-server --watch db.json --port 3001"
+    "server": "node server.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
