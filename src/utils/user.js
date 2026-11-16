@@ -1,13 +1,13 @@
-export function getUserId() {
+export function getSessionUser() {
   const session = localStorage.getItem("projectHubSession");
-  if (session) return JSON.parse(session).id;
 
-  let id = localStorage.getItem("userId");
-
-  if (!id) {
-    id = "user-" + crypto.randomUUID();
-    localStorage.setItem("userId", id);
+  if (!session) {
+    return null;
   }
 
-  return id;
+  return JSON.parse(session);
+}
+
+export function getUserId() {
+  return getSessionUser()?.id ?? null;
 }

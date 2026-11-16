@@ -5,9 +5,14 @@ function DashboardNavbar() {
 
   return (
     <header className="flex items-center justify-between bg-white px-6 py-4 shadow">
-      <h1 className="font-semibold text-gray-800">
-        Dashboard{user ? ` · ${user.name}` : ""}
-      </h1>
+      <div>
+        <h1 className="font-semibold text-gray-800">
+          Dashboard
+          {user ? ` · ${user.name}` : ""}
+        </h1>
+
+        {user && <p className="text-xs text-gray-500">Role: {user.role}</p>}
+      </div>
 
       <button
         onClick={logout}

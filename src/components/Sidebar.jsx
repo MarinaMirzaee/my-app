@@ -1,13 +1,19 @@
 import { NavLink } from "react-router-dom";
+
 import {
   LayoutDashboard,
   FolderKanban,
   ListTodo,
   Users,
   Settings,
+  ShieldCheck,
 } from "lucide-react";
 
+import { useAuth } from "../context/useAuth";
+
 function Sidebar() {
+  const { user } = useAuth();
+
   const linkClass = ({ isActive }) =>
     isActive
       ? "flex items-center gap-3 rounded bg-indigo-600 px-4 py-2 text-white"
@@ -42,6 +48,17 @@ function Sidebar() {
           <Settings size={20} />
           Settings
         </NavLink>
+
+        {user?.role === "admin" && (
+          <>
+            <div className="my-2 border-t border-gray-700" />
+
+            <NavLink to="/admin" className={linkClass}>
+              <ShieldCheck size={20} />
+              Admin Dashboard
+            </NavLink>
+          </>
+        )}
       </nav>
     </aside>
   );
