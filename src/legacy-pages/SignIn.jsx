@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signInSchema } from "../schemas/signInSchema";
 import { validate } from "../utils/validate";
 import { useAuth } from "../context/useAuth";
 
 function SignIn() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { login } = useAuth();
   const [errors, setErrors] = useState({});
 
@@ -20,7 +21,7 @@ function SignIn() {
 
     try {
       await login(data);
-      navigate("/dashboard", { replace: true });
+      router.replace("/dashboard");
     } catch (error) {
       setErrors({ form: error.message });
     }
@@ -83,10 +84,10 @@ function SignIn() {
           </p>
         )}
 
-        <Link to="/signup" className="mt-4 block text-center text-sm text-indigo-600">
+        <Link href="/signup" className="mt-4 block text-center text-sm text-indigo-600">
           Create an account
         </Link>
-        <Link to="/" className="mt-4 block text-center text-sm text-gray-500">
+        <Link href="/" className="mt-4 block text-center text-sm text-gray-500">
           Back to home
         </Link>
       </form>

@@ -1,8 +1,7 @@
-import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import DashboardNavbar from "../components/DashboardNavbar";
 
-function DashboardLayout() {
+function DashboardLayout({ children }) {
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
@@ -12,7 +11,7 @@ function DashboardLayout() {
 
         {/* the current page shows up here */}
         <main className="p-6">
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>
