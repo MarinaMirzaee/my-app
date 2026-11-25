@@ -4,6 +4,7 @@ import { useProjects, useDeleteProject } from "../hooks/useProjects";
 
 import { useTasks } from "../hooks/useTasks";
 import { useUsers } from "../hooks/useUsers";
+import { useUpdateUserRole } from "../hooks/useUserRole";
 
 import LoadingState from "../components/LoadingState";
 import SearchFilter from "../components/SearchFilter";
@@ -21,6 +22,7 @@ function AdminDashboard() {
   const tasksQuery = useTasks(projectIds);
 
   const deleteMutation = useDeleteProject();
+  const roleMutation = useUpdateUserRole();
 
   const [search, setSearch] = useState("");
 
@@ -57,6 +59,15 @@ function AdminDashboard() {
       await deleteMutation.mutateAsync(project.id);
     } catch (error) {
       alert(error.message || "Could not delete project.");
+    }
+  }
+
+  async function handleRoleChange(user) {
+    const role = user.role === "admin" ? "user" : "admin";
+    try {
+      await roleMutation.mutateAsync({ id: user.id, role });
+    } catch (error) {
+      alert(error.message || "Could not update the user role.");
     }
   }
 
@@ -103,6 +114,16 @@ function AdminDashboard() {
 
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-bold">All Projects</h2>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="mb-3 text-xl font-bold">User roles</h2>
+        <div className="overflow-x-auto rounded bg-white shadow">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 text-gray-600"><tr><th className="p-3">Name</th><th className="p-3">Email</th><th className="p-3">Role</th><th className="p-3">Actions</th></tr></thead>
+            <tbody>{users.map((user) => <tr key={user.id} className="border-t"><td className="p-3">{user.name}</td><td className="p-3">{user.email}</td><td className="p-3">{user.role}</td><td className="p-3"><button onClick={() => handleRoleChange(user)} disabled={roleMutation.isPending} className="text-indigo-600 hover:underline disabled:opacity-50">{user.role === "admin" ? "Make user" : "Make admin"}</button></td></tr>)}</tbody>
+          </table>
+        </div>
       </div>
 
       <SearchFilter

@@ -19,3 +19,13 @@ export async function getUser(id) {
 
   return res.json();
 }
+
+export async function updateUserRole(id, role) {
+  const res = await apiFetch(`/users/${encodeURIComponent(id)}/role`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) throw await readApiError(res, "Could not update the user role.");
+  return res.json();
+}

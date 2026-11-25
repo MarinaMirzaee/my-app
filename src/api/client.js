@@ -1,3 +1,5 @@
+import { getSession } from "next-auth/react";
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const SESSION_KEY = "projectHubSession";
 
@@ -12,7 +14,8 @@ export function getAccessToken() {
 
 export async function apiFetch(path, options = {}, authenticated = true) {
   const headers = new Headers(options.headers || {});
-  const token = getAccessToken();
+  const session = authenticated ? await getSession() : null;
+  const token = session?.apiToken || getAccessToken();
 
   if (authenticated && token) {
     headers.set("Authorization", `Bearer ${token}`);

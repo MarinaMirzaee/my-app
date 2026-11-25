@@ -1,35 +1,21 @@
-import { useState } from "react";
+"use client";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { createAccount, updateAccount as updateStoredAccount } from "../api/auth";
 import { AuthContext } from "./authContextValue";
 
-import {
-  authenticateAccount,
-  clearSession,
-  createAccount,
-  getSavedSession,
-  saveSession,
-  updateAccount as updateStoredAccount,
-} from "../api/auth";
-import { getAccessToken } from "../api/client";
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(getSavedSession);
-
-  async function signUp(accountData) {
-    const session = await createAccount(accountData);
-
-    saveSession(session);
-    setUser(session.user);
-
-    return session.user;
-  }
+  const { data: session, status, update } = useSession();
+  const user = session?.user || null;
 
   async function login(credentials) {
-    const session = await authenticateAccount(credentials);
+    const result = await signIn("credentials", { ...credentials, redirect: false });
+    if (!result || result.error) throw new Error("Invalid email or password.");
+    return (await update())?.user || user;
+  }
 
-    saveSession(session);
-    setUser(session.user);
-
-    return session.user;
+  async function signUp(accountData) {
+    await createAccount(accountData);
+    return login({ email: accountData.email, password: accountData.password });
   }
 
   async function updateAccount(accountData) {
@@ -38,21 +24,20 @@ export function AuthProvider({ children }) {
     }
 
     const account = await updateStoredAccount(user.id, accountData);
-    saveSession({ user: account, token: getAccessToken() });
-    setUser(account);
+    await update({ user: account });
 
     return account;
   }
 
-  function logout() {
-    clearSession();
-    setUser(null);
+  async function logout() {
+    await signOut({ redirect: false });
   }
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        status,
         signUp,
         login,
         updateAccount,

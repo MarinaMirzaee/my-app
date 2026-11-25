@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { AuthProvider } from "../context/AuthContext";
+import { SessionProvider } from "next-auth/react";
 
 export default function Providers({ children }) {
   const [queryClient] = useState(
@@ -11,7 +12,9 @@ export default function Providers({ children }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
+      <SessionProvider>
+        <AuthProvider>{children}</AuthProvider>
+      </SessionProvider>
     </QueryClientProvider>
   );
 }

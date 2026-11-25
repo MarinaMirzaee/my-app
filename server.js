@@ -287,6 +287,25 @@ export function createApiServer({
         sendJson(response, 200, publicUser(found));
         return;
       }
+      if (method === "PATCH" && parts.length === 3 && parts[2] === "role") {
+        if (user.role !== "admin") fail(403, "Only an admin can change user roles.");
+        const target = getUserById(parts[1]);
+        if (!target) fail(404, "User not found.");
+        const body = await readBody(request);
+        if (body.role !== "admin" && body.role !== "user") {
+          fail(400, "Role must be either user or admin.");
+        }
+        if (target.id === user.id && body.role !== "admin") {
+          fail(400, "You cannot remove your own admin role.");
+        }
+        if (target.role === "admin" && body.role === "user" && database.users.filter((item) => item.role === "admin").length === 1) {
+          fail(400, "At least one admin account must remain.");
+        }
+        target.role = body.role;
+        persist();
+        sendJson(response, 200, publicUser(target));
+        return;
+      }
       if (method === "PATCH" && parts.length === 2) {
         if (parts[1] !== user.id) fail(403, "You can only update your own account.");
         const body = await readBody(request);
