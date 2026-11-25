@@ -2,6 +2,7 @@ const SESSION_KEY = "projectHubSession";
 import { apiFetch, readApiError } from "./client.js";
 
 export function getSavedSession() {
+  if (typeof localStorage === "undefined") return null;
   try {
     const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
     return session?.token && session?.user ? session.user : null;
@@ -37,10 +38,12 @@ export async function authenticateAccount({ email, password }) {
 }
 
 export function saveSession({ user, token }) {
+  if (typeof localStorage === "undefined") return;
   localStorage.setItem(SESSION_KEY, JSON.stringify({ user, token }));
 }
 
 export function clearSession() {
+  if (typeof localStorage === "undefined") return;
   localStorage.removeItem(SESSION_KEY);
 }
 

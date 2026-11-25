@@ -1,7 +1,8 @@
-const BASE_URL = import.meta.env?.VITE_API_URL || "http://localhost:3001";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const SESSION_KEY = "projectHubSession";
 
 export function getAccessToken() {
+  if (typeof localStorage === "undefined") return null;
   try {
     return JSON.parse(localStorage.getItem(SESSION_KEY) || "null")?.token ?? null;
   } catch {
