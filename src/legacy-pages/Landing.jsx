@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import Navbar from "../components/Navbar";
 
 function Landing() {
@@ -15,7 +15,7 @@ function Landing() {
           assign tasks to your team, and track the progress until the deadline.
         </p>
         <Link
-          to="/signin"
+          href="/signin"
           className="mt-8 inline-block rounded bg-indigo-600 px-6 py-3 text-white hover:bg-indigo-700"
         >
           Get Started

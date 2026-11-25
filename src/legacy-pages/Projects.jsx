@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 
 import {
   useProjects,
@@ -207,7 +207,7 @@ function Projects() {
                 <tr key={project.id} className="border-t">
                   <td className="p-3">
                     <Link
-                      to={`/dashboard/projects/${project.id}`}
+                      href={`/dashboard/projects/${project.id}`}
                       className="font-medium text-indigo-600 hover:underline"
                     >
                       {project.title}

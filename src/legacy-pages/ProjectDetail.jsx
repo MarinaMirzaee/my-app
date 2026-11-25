@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import Link from "next/link";
 
 import { useProject } from "../hooks/useProjects";
 
@@ -27,8 +27,7 @@ import { taskSchema } from "../schemas/schemas/taskSchema";
 
 import { canManageTasks } from "../utils/permissions";
 
-function ProjectDetail() {
-  const { id } = useParams();
+function ProjectDetail({ id }) {
 
   const { user } = useAuth();
 
@@ -137,7 +136,7 @@ function ProjectDetail() {
         </p>
 
         <Link
-          to="/dashboard/projects"
+          href="/dashboard/projects"
           className="text-indigo-600 hover:underline"
         >
           Back to projects
@@ -191,7 +190,7 @@ function ProjectDetail() {
   return (
     <div>
       <Link
-        to="/dashboard/projects"
+        href="/dashboard/projects"
         className="text-sm text-indigo-600 hover:underline"
       >
         ← Back to projects

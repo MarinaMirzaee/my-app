@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../context/useAuth";
 import { signUpSchema } from "../schemas/signUpSchema";
 import { validate } from "../utils/validate";
 
 function SignUp() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { signUp } = useAuth();
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -22,7 +23,7 @@ function SignUp() {
     setIsSaving(true);
     try {
       await signUp(data);
-      navigate("/dashboard", { replace: true });
+      router.replace("/dashboard");
     } catch (error) {
       setErrors({ form: error.message });
     } finally {
@@ -103,7 +104,7 @@ function SignUp() {
         >
           {isSaving ? "Creating account..." : "Create account"}
         </button>
-        <Link to="/signin" className="mt-4 block text-center text-sm text-indigo-600">
+        <Link href="/signin" className="mt-4 block text-center text-sm text-indigo-600">
           Already have an account? Sign in
         </Link>
       </form>
